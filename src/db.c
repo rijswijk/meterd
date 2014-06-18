@@ -35,11 +35,21 @@
 #include "meterd_error.h"
 #include "meterd_log.h"
 #include "db.h"
+#include "utlist.h"
 #include <pthread.h>
 #include <sqlite3.h>
 #include <assert.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
+
+static const char* prefixes[3] =
+{
+	TABLE_PREFIX_RAW,
+	TABLE_PREFIX_CONSUMED,
+	TABLE_PREFIX_PRODUCED
+};
 
 static pthread_mutex_t meterd_db_mutex;
 
@@ -92,7 +102,7 @@ meterd_rv meterd_db_create(const char* db_name, int force_create, void** db_hand
 	/* First, make sure we're not unintentionally overwriting an existing DB */
 	if (!force_create && (meterd_db_exists(db_name) == MRV_OK))
 	{
-		WARNING_MSG("Trying to create a database that already exists (%d)", db_name);
+		WARNING_MSG("Trying to create a database that already exists (%s)", db_name);
 
 		return MRV_FILE_EXISTS;
 	}
@@ -130,6 +140,77 @@ meterd_rv meterd_db_create(const char* db_name, int force_create, void** db_hand
 		WARNING_MSG("Failed to switch new database to write-ahead logging mode (%s)", errmsg);
 
 		sqlite3_free(errmsg);
+	}
+
+	return MRV_OK;
+}
+
+/* Create tables based on the supplied prefix and counter specifications */
+meterd_rv meterd_db_create_tables(void* db_handle, counter_spec* counters)
+{
+	assert(db_handle != NULL);
+
+	char*		sql		= NULL;
+	char		sql_buf[4096]	= { 0 };
+	char*		errmsg		= NULL;
+	counter_spec*	ctr_it		= NULL;
+
+	/* Create the configuration table */
+	sql = 	"CREATE TABLE CONFIGURATION " \
+		"(" \
+			"id		VARCHAR(16) PRIMARY KEY," \
+			"description	VARCHAR(255)," \
+			"type		INTEGER," \
+			"table_name	VARCHAR(255)" \
+		");";
+
+	if (sqlite3_exec((sqlite3*) db_handle, sql, NULL, 0, &errmsg) != SQLITE_OK)
+	{
+		ERROR_MSG("Failed to create configuration table (%s)", errmsg);
+
+		sqlite3_free(errmsg);
+
+		return MRV_DB_ERROR;
+	}
+
+	/* Populate the configuration table and create the data table */
+	sql =	"INSERT INTO CONFIGURATION (id,description,type,table_name) VALUES ('%s','%s',%d,'%s');" \
+		"CREATE TABLE %s " \
+		"(" \
+			"timestamp	INTEGER," \
+			"value		DOUBLE," \
+			"unit		VARCHAR(16)"
+		");";
+
+	LL_FOREACH(counters, ctr_it)
+	{
+		char* 	table_name_id 	= strdup(ctr_it->id);
+		char	table_name[256]	= { 0 };
+
+		if (table_name_id == NULL)
+		{
+			return MRV_MEMORY;
+		}
+
+		while (strchr(table_name_id, '.') != NULL)
+		{
+			(*strchr(table_name_id, '.')) = '_';
+		}
+
+		snprintf(table_name, 256, "%s%s", prefixes[ctr_it->type], table_name_id);
+
+		free(table_name_id);
+
+		snprintf(sql_buf, 4096, sql, ctr_it->id, ctr_it->description, ctr_it->type, table_name, table_name);
+
+		if (sqlite3_exec((sqlite3*) db_handle, sql_buf, NULL, 0, &errmsg) != SQLITE_OK)
+		{
+			ERROR_MSG("Failed to insert counter %s into CONFIGURATION table or create table %s (%s)", ctr_it->id, table_name, errmsg);
+
+			sqlite3_free(errmsg);
+
+			return MRV_DB_ERROR;
+		}
 	}
 
 	return MRV_OK;

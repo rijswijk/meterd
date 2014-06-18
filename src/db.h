@@ -35,8 +35,10 @@
 
 #include "config.h"
 #include "meterd_types.h"
+#include "meterd_config.h"
 
 #define TABLE_PREFIX_RAW	"RAW_"
+#define TABLE_PREFIX_PRODUCED	"PRODUCED_"
 #define TABLE_PREFIX_CONSUMED	"CONSUMED_"
 
 /* Initialise database handling */
@@ -50,6 +52,9 @@ meterd_rv meterd_db_exists(const char* db_name);
 
 /* Create and open the specified database */
 meterd_rv meterd_db_create(const char* db_name, int force_create, void** db_handle);
+
+/* Create tables based on the supplied counter specifications */
+meterd_rv meterd_db_create_tables(void* db_handle, counter_spec* counters);
 
 /* Open the specified database */
 meterd_rv meterd_db_open(const char* db_name, int read_only, void** db_handle);

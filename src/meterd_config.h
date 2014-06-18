@@ -37,6 +37,20 @@
 #include "meterd_types.h"
 #include <libconfig.h>
 
+#define COUNTER_TYPE_RAW	0
+#define COUNTER_TYPE_CONSUMED	1
+#define COUNTER_TYPE_PRODUCED	2
+
+/* Counter specifications */
+typedef struct counter_spec
+{
+	char*			description;	/* Short text description of the counter */
+	char*			id;		/* Identifier of the counter */
+	int			type;		/* Counter type */
+	struct counter_spec*	next;
+}
+counter_spec;
+
 /* Initialise the configuration handler */
 meterd_rv meterd_init_config_handling(const char* config_path);
 
@@ -54,6 +68,12 @@ meterd_rv meterd_conf_get_string_array(const char* base_path, const char* sub_pa
 
 /* Free an array of string values */
 meterd_rv meterd_conf_free_string_array(char** array, int count);
+
+/* Retrieve a list of counter specifications */
+meterd_rv meterd_conf_get_counter_specs(const char* base_path, const char* sub_path, int type, counter_spec** counter_specs);
+
+/* Clean up counter specifications */
+void meterd_conf_free_counter_specs(counter_spec* counter_specs);
 
 /* Release the configuration handler */
 meterd_rv meterd_uninit_config_handling(void);

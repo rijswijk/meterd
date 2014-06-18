@@ -244,6 +244,97 @@ meterd_rv meterd_conf_free_string_array(char** array, int count)
 	return MRV_OK;
 }
 
+/* Retrieve a list of counter specifications */
+meterd_rv meterd_conf_get_counter_specs(const char* base_path, const char* sub_path, int type, counter_spec** counter_specs)
+{
+	assert(base_path != NULL);
+	assert(sub_path != NULL);
+	assert(counter_specs != NULL);
+
+	char			path_buf[8192]	= { 0 };
+	unsigned int		counter_count	= 0;
+	unsigned int		i		= 0;
+	config_setting_t*	counters_conf	= NULL;
+
+	snprintf(path_buf, 8192, "%s.%s", base_path, sub_path);
+
+	counters_conf = config_lookup(&configuration, path_buf);
+
+	if (counters_conf == NULL)
+	{
+		ERROR_MSG("No counters specified under %s in the configuration file", path_buf);
+
+		return MRV_CONF_NO_COUNTERS;
+	}
+
+	counter_count = config_setting_length(counters_conf);
+
+	for (i = 0; i < counter_count; i++)
+	{
+		config_setting_t*	counter_conf	= NULL;
+		counter_spec*		new_counter	= NULL;
+		const char*		description	= NULL;
+		const char*		id		= NULL;
+
+		/* Retrieve the next configured counter */
+		counter_conf = config_setting_get_elem(counters_conf, i);
+
+		if (counter_conf == NULL)
+		{
+			ERROR_MSG("Failed to enumerate next counter specification");
+
+			continue;
+		}
+		
+		/* Retrieve the description */
+		if ((config_setting_lookup_string(counter_conf, "description", &description) != CONFIG_TRUE) || (description == NULL))
+		{
+			ERROR_MSG("No description for counter %s", config_setting_name(counter_conf));
+
+			continue;
+		}
+		
+		/* Retrieve the ID */
+		if ((config_setting_lookup_string(counter_conf, "id", &id) != CONFIG_TRUE) || (id == NULL))
+		{
+			ERROR_MSG("No ID for counter %s", config_setting_name(counter_conf));
+
+			continue;
+		}
+
+		new_counter = (counter_spec*) malloc(sizeof(counter_spec));
+
+		if (new_counter == NULL)
+		{
+			return MRV_MEMORY;
+		}
+		
+		new_counter->description 	= strdup(description);
+		new_counter->id			= strdup(id);
+		new_counter->type		= type;
+
+		LL_APPEND((*counter_specs), new_counter);
+	}
+
+	return MRV_OK;
+}
+
+/* Clean up counter specifications */
+void meterd_conf_free_counter_specs(counter_spec* counter_specs)
+{
+	counter_spec*	ctr_it	= NULL;
+	counter_spec*	ctr_tmp	= NULL;
+
+	LL_FOREACH_SAFE(counter_specs, ctr_it, ctr_tmp)
+	{
+		LL_DELETE(counter_specs, ctr_it);
+
+		free(ctr_it->description);
+		free(ctr_it->id);
+		free(ctr_it);
+	}
+}
+
 /* Get a pointer to the internal configuration structure */
 const config_t* meterd_conf_get_config_t(void)
 {

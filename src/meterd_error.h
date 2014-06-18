@@ -52,6 +52,7 @@
 #define MRV_FILE_NOT_FOUND	0x80000008	/* The specified file could not be found */
 #define MRV_FILE_EXISTS		0x80000009	/* The specified file already exists */
 #define MRV_DB_ERROR		0x8000000A	/* A database error occurred */
+#define MRV_CONF_NO_COUNTERS	0x8000000B	/* No counters were found under the specified configuration path */
 
 #endif /* !_METERD_ERROR_H */
 
