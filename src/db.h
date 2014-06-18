@@ -17,7 +17,7 @@
  * ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
  * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
- * GOODS OR SMRVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
@@ -27,31 +27,35 @@
 
 /*
  * Smart Meter Monitoring Daemon (meterd)
- * Types
+ * Database interaction
  */
 
-#ifndef _METERD_ERROR_H
-#define _METERD_ERROR_H
+#ifndef _METERD_DB_H
+#define _METERD_DB_H
 
 #include "config.h"
+#include "meterd_types.h"
 
-/* Function return values */
+#define TABLE_PREFIX_RAW	"RAW_"
+#define TABLE_PREFIX_CONSUMED	"CONSUMED_"
 
-/* Success */
-#define MRV_OK			0x00000000
+/* Initialise database handling */
+meterd_rv meterd_db_init(void);
 
-/* Error messages */
-#define MRV_GENERAL_ERROR	0x80000000	/* An undefined error occurred */
-#define MRV_MEMORY		0x80000001	/* An error occurred while allocating memory */
-#define MRV_PARAM_INVALID	0x80000002	/* Invalid parameter(s) provided for function call */
-#define MRV_NO_CONFIG		0x80000003	/* No configuration file was specified */
-#define MRV_CONFIG_ERROR	0x80000004	/* An error occurred while reading the configuration file */
-#define MRV_LOG_INIT_FAIL	0x80000005	/* Failed to initialise logging */
-#define MRV_CONFIG_NO_ARRAY	0x80000006	/* The requested configuration item is not an array */
-#define MRV_CONFIG_NO_STRING	0x80000007	/* The requested configuration item is not a string */
-#define MRV_FILE_NOT_FOUND	0x80000008	/* The specified file could not be found */
-#define MRV_FILE_EXISTS		0x80000009	/* The specified file already exists */
-#define MRV_DB_ERROR		0x8000000A	/* A database error occurred */
+/* Uninitialise database handling */
+void meterd_db_finalize(void);
 
-#endif /* !_METERD_ERROR_H */
+/* Check if the specified database exists */
+meterd_rv meterd_db_exists(const char* db_name);
+
+/* Create and open the specified database */
+meterd_rv meterd_db_create(const char* db_name, int force_create, void** db_handle);
+
+/* Open the specified database */
+meterd_rv meterd_db_open(const char* db_name, int read_only, void** db_handle);
+
+/* Close the specified database */
+void meterd_db_close(void* db_handle);
+
+#endif /* !_METERD_DB_H */
 
