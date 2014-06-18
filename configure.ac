@@ -45,6 +45,7 @@ AC_ARG_WITH(
 # Check for libraries
 PKG_CHECK_MODULES([LIBCONFIG], [libconfig >= 1.3.2],, AC_MSG_ERROR([libconfig 1.3.2 or newer not found]))
 ACX_PTHREAD
+AX_LIB_SQLITE3(3.7.0)
 
 # Check for headers
 AC_CHECK_HEADERS([unistd.h])
