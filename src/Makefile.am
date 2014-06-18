@@ -12,6 +12,8 @@ meterd_SOURCES =		meterd_main.c \
 				meterd_log.h \
 				meterd_config.c \
 				meterd_config.h \
+				p1_parser.c \
+				p1_parser.h \
 				utlist.h \
 				uthash.h
 
