@@ -117,6 +117,7 @@ meterd_rv meterd_createdb_raw(const char* type, int force_overwrite)
 
 		new_counter->description 	= strdup("Current consumption");
 		new_counter->id			= strdup(id_cur_consume);
+		new_counter->table_name		= meterd_conf_create_table_name(id_cur_consume, COUNTER_TYPE_RAW);
 		new_counter->type		= COUNTER_TYPE_RAW;
 
 		LL_APPEND(ctr_specs, new_counter);
@@ -149,6 +150,7 @@ meterd_rv meterd_createdb_raw(const char* type, int force_overwrite)
 
 		new_counter->description 	= strdup("Current production");
 		new_counter->id 		= strdup(id_cur_produce);
+		new_counter->table_name		= meterd_conf_create_table_name(id_cur_produce, COUNTER_TYPE_RAW);
 		new_counter->type		= COUNTER_TYPE_RAW;
 
 		LL_APPEND(ctr_specs, new_counter);
@@ -188,6 +190,120 @@ meterd_rv meterd_createdb_raw(const char* type, int force_overwrite)
 
 	free(db_name);
 	meterd_conf_free_counter_specs(ctr_specs);
+
+	/* Close the database */
+	meterd_db_close(db_handle);
+
+	return rv;
+}
+
+meterd_rv meterd_createdb_counters(int force_overwrite)
+{
+	counter_spec*	counters	= NULL;
+	char*		db_name		= NULL;
+	char*		gas_id		= NULL;
+	char*		gas_description	= NULL;
+	meterd_rv	rv		= MRV_OK;
+	void*		db_handle	= NULL;
+
+	/* Check if the database type is configured */
+	if ((rv = meterd_conf_get_string("database", "counters", &db_name, NULL)) != MRV_OK)
+	{
+		ERROR_MSG("Failed to retrieve configuration option database.counters");
+
+		return rv;
+	}
+
+	if (db_name == NULL)
+	{
+		INFO_MSG("No database for consumption and production counters specified, skipping");
+
+		return MRV_OK;
+	}
+
+	/* Retrieve the consumption counters */
+	if ((rv = meterd_conf_get_counter_specs("database", "consumption", COUNTER_TYPE_CONSUMED, &counters)) != MRV_OK)
+	{
+		ERROR_MSG("Failed to retrieve consumption counter configuration");
+
+		return rv;
+	}
+
+	/* Retrieve the production counters */
+	if ((rv = meterd_conf_get_counter_specs("database", "production", COUNTER_TYPE_PRODUCED, &counters)) != MRV_OK)
+	{
+		ERROR_MSG("Failed to retrieve production counter configuration");
+
+		return rv;
+	}
+
+	/* Check if there is a gas counter configured */
+	if (((rv = meterd_conf_get_string("database.gascounter", "id", &gas_id, NULL)) != MRV_OK) ||
+	    ((rv = meterd_conf_get_string("database.gascounter", "description", &gas_description, NULL)) != MRV_OK))
+	{
+		ERROR_MSG("Failed to retrieve gas counter configuration");
+
+		free(db_name);
+		free(gas_id);
+		free(gas_description);
+		meterd_conf_free_counter_specs(counters);
+
+		return rv;
+	}
+
+	/* Add the gas counter if specified */
+	if (gas_id != NULL)
+	{
+		counter_spec* new_counter = NULL;
+
+		if (gas_description == NULL)
+		{
+			gas_description = strdup("Gas");
+		}
+
+		new_counter = (counter_spec*) malloc(sizeof(counter_spec));
+
+		if (new_counter == NULL)
+		{
+			free(db_name);
+			free(gas_id);
+			free(gas_description);
+			meterd_conf_free_counter_specs(counters);
+
+			return MRV_MEMORY;
+		}
+
+		new_counter->id 		= gas_id;
+		new_counter->description	= gas_description;
+		new_counter->table_name		= meterd_conf_create_table_name(gas_id, COUNTER_TYPE_CONSUMED);
+		new_counter->type		= COUNTER_TYPE_CONSUMED;
+
+		LL_APPEND(counters, new_counter);
+	}
+
+	/* Create and open the database */
+	if ((rv = meterd_db_create(db_name, force_overwrite, &db_handle)) != MRV_OK)
+	{
+		ERROR_MSG("Failed to create database %s for counters", db_name);
+
+		free(db_name);
+		meterd_conf_free_counter_specs(counters);
+
+		return rv;
+	}
+
+	INFO_MSG("Created database %s for counters", db_name);
+
+	/* Create data tables */
+	if ((rv = meterd_db_create_tables(db_handle, counters)) != MRV_OK)
+	{
+		ERROR_MSG("Error during table creation");
+
+		unlink(db_name);
+	}
+
+	free(db_name);
+	meterd_conf_free_counter_specs(counters);
 
 	/* Close the database */
 	meterd_db_close(db_handle);
@@ -274,6 +390,9 @@ int main(int argc, char* argv[])
 	meterd_createdb_raw("raw_db", force_overwrite);
 	meterd_createdb_raw("fivemin_avg", force_overwrite);
 	meterd_createdb_raw("hourly_avg", force_overwrite);
+
+	/* Create counters database */
+	meterd_createdb_counters(force_overwrite);
 
 	INFO_MSG("Finished database creation");
 

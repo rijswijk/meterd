@@ -41,11 +41,16 @@
 #define COUNTER_TYPE_CONSUMED	1
 #define COUNTER_TYPE_PRODUCED	2
 
+#define TABLE_PREFIX_RAW	"RAW_"
+#define TABLE_PREFIX_PRODUCED	"PRODUCED_"
+#define TABLE_PREFIX_CONSUMED	"CONSUMED_"
+
 /* Counter specifications */
 typedef struct counter_spec
 {
 	char*			description;	/* Short text description of the counter */
 	char*			id;		/* Identifier of the counter */
+	char*			table_name;	/* The database table name for this counter */
 	int			type;		/* Counter type */
 	struct counter_spec*	next;
 }
@@ -71,6 +76,9 @@ meterd_rv meterd_conf_free_string_array(char** array, int count);
 
 /* Retrieve a list of counter specifications */
 meterd_rv meterd_conf_get_counter_specs(const char* base_path, const char* sub_path, int type, counter_spec** counter_specs);
+
+/* Convert a counter ID to a table name */
+char* meterd_conf_create_table_name(const char* id, int type);
 
 /* Clean up counter specifications */
 void meterd_conf_free_counter_specs(counter_spec* counter_specs);

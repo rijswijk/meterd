@@ -44,13 +44,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-static const char* prefixes[3] =
-{
-	TABLE_PREFIX_RAW,
-	TABLE_PREFIX_CONSUMED,
-	TABLE_PREFIX_PRODUCED
-};
-
 static pthread_mutex_t meterd_db_mutex;
 
 /* Initialise database handling */
@@ -184,28 +177,11 @@ meterd_rv meterd_db_create_tables(void* db_handle, counter_spec* counters)
 
 	LL_FOREACH(counters, ctr_it)
 	{
-		char* 	table_name_id 	= strdup(ctr_it->id);
-		char	table_name[256]	= { 0 };
-
-		if (table_name_id == NULL)
-		{
-			return MRV_MEMORY;
-		}
-
-		while (strchr(table_name_id, '.') != NULL)
-		{
-			(*strchr(table_name_id, '.')) = '_';
-		}
-
-		snprintf(table_name, 256, "%s%s", prefixes[ctr_it->type], table_name_id);
-
-		free(table_name_id);
-
-		snprintf(sql_buf, 4096, sql, ctr_it->id, ctr_it->description, ctr_it->type, table_name, table_name);
+		snprintf(sql_buf, 4096, sql, ctr_it->id, ctr_it->description, ctr_it->type, ctr_it->table_name, ctr_it->table_name);
 
 		if (sqlite3_exec((sqlite3*) db_handle, sql_buf, NULL, 0, &errmsg) != SQLITE_OK)
 		{
-			ERROR_MSG("Failed to insert counter %s into CONFIGURATION table or create table %s (%s)", ctr_it->id, table_name, errmsg);
+			ERROR_MSG("Failed to insert counter %s into CONFIGURATION table or create table %s (%s)", ctr_it->id, ctr_it->table_name, errmsg);
 
 			sqlite3_free(errmsg);
 

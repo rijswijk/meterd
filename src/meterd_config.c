@@ -45,6 +45,13 @@
 /* The configuration */
 config_t configuration;
 
+static const char* prefixes[3] =
+{
+	TABLE_PREFIX_RAW,
+	TABLE_PREFIX_CONSUMED,
+	TABLE_PREFIX_PRODUCED
+};
+
 /* Initialise the configuration handler */
 meterd_rv meterd_init_config_handling(const char* config_path)
 {
@@ -271,10 +278,10 @@ meterd_rv meterd_conf_get_counter_specs(const char* base_path, const char* sub_p
 
 	for (i = 0; i < counter_count; i++)
 	{
-		config_setting_t*	counter_conf	= NULL;
-		counter_spec*		new_counter	= NULL;
-		const char*		description	= NULL;
-		const char*		id		= NULL;
+		config_setting_t*	counter_conf		= NULL;
+		counter_spec*		new_counter		= NULL;
+		const char*		description		= NULL;
+		const char*		id			= NULL;
 
 		/* Retrieve the next configured counter */
 		counter_conf = config_setting_get_elem(counters_conf, i);
@@ -311,12 +318,39 @@ meterd_rv meterd_conf_get_counter_specs(const char* base_path, const char* sub_p
 		
 		new_counter->description 	= strdup(description);
 		new_counter->id			= strdup(id);
+		new_counter->table_name		= meterd_conf_create_table_name(id, type);
 		new_counter->type		= type;
 
 		LL_APPEND((*counter_specs), new_counter);
 	}
 
 	return MRV_OK;
+}
+
+/* Convert a counter ID to a table name */
+char* meterd_conf_create_table_name(const char* id, int type)
+{
+	char*	table_name_id		= NULL;
+	char	table_name_buf[256]	= { 0 };
+
+	/* Create the table name */
+	table_name_id = strdup(id);
+
+	if (table_name_id == NULL)
+	{
+		return NULL;
+	}
+
+	while (strchr(table_name_id, '.') != NULL)
+	{
+		(*strchr(table_name_id, '.')) = '_';
+	}
+
+	snprintf(table_name_buf, 256, "%s%s", prefixes[type], table_name_id);
+
+	free(table_name_id);
+
+	return strdup(table_name_buf);
 }
 
 /* Clean up counter specifications */
@@ -331,6 +365,7 @@ void meterd_conf_free_counter_specs(counter_spec* counter_specs)
 
 		free(ctr_it->description);
 		free(ctr_it->id);
+		free(ctr_it->table_name);
 		free(ctr_it);
 	}
 }

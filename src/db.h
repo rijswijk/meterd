@@ -37,10 +37,6 @@
 #include "meterd_types.h"
 #include "meterd_config.h"
 
-#define TABLE_PREFIX_RAW	"RAW_"
-#define TABLE_PREFIX_PRODUCED	"PRODUCED_"
-#define TABLE_PREFIX_CONSUMED	"CONSUMED_"
-
 /* Initialise database handling */
 meterd_rv meterd_db_init(void);
 
