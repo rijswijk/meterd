@@ -15,6 +15,10 @@ meterd_SOURCES =		meterd_main.c \
 				p1_parser.h \
 				db.c \
 				db.h \
+				measure.c \
+				measure.h \
+				comm.c \
+				comm.h \
 				utlist.h \
 				uthash.h
 

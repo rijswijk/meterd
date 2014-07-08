@@ -207,7 +207,7 @@ meterd_rv meterd_createdb_counters(int force_overwrite)
 	void*		db_handle	= NULL;
 
 	/* Check if the database type is configured */
-	if ((rv = meterd_conf_get_string("database", "counters", &db_name, NULL)) != MRV_OK)
+	if ((rv = meterd_conf_get_string("database", "total_consumed", &db_name, NULL)) != MRV_OK)
 	{
 		ERROR_MSG("Failed to retrieve configuration option database.counters");
 

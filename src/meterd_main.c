@@ -36,6 +36,7 @@
 #include "meterd_error.h"
 #include "meterd_config.h"
 #include "meterd_log.h"
+#include "measure.h"
 
 void version(void)
 {
@@ -101,7 +102,11 @@ void signal_handler(int signum)
 		ERROR_MSG("Caught SIGPIPE");
 		break;
 	case SIGQUIT:
-		ERROR_MSG("Caught SIGQUIT");
+		INFO_MSG("Caught SIGQUIT, exiting");
+
+		/* Stop running measurement */
+		meterd_measure_interrupt();
+
 		break;
 	case SIGSEGV:
 		ERROR_MSG("Caught SIGSEGV");
@@ -280,7 +285,26 @@ int main(int argc, char* argv[])
 	signal(SIGXCPU, signal_handler);
 	signal(SIGXFSZ, signal_handler);
 
-	/* DO WORK HERE */
+	/* Initialise the measurement loop */
+	if (meterd_measure_init() != MRV_OK)
+	{
+		ERROR_MSG("Failed to initialise the measurement subsystem, giving up");
+	}
+	else
+	{
+		/* TODO: initialise and start task thread */
+	
+		/* Run measurement loop */
+		meterd_measure_loop();
+	
+		/* TODO: stop and uninitialise task thread */
+	
+		/* Uninitialise the measurement loop */
+		if (meterd_measure_finalize() != MRV_OK)
+		{
+			WARNING_MSG("Failed to properly uninitialise the measurement subsystem");
+		}
+	}
 
 	INFO_MSG("Stopping the Smart Meter Monitoring Daemon (meterd) version %s", VERSION);
 

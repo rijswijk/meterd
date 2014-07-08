@@ -37,25 +37,6 @@
 #include "meterd_types.h"
 #include <libconfig.h>
 
-#define COUNTER_TYPE_RAW	0
-#define COUNTER_TYPE_CONSUMED	1
-#define COUNTER_TYPE_PRODUCED	2
-
-#define TABLE_PREFIX_RAW	"RAW_"
-#define TABLE_PREFIX_PRODUCED	"PRODUCED_"
-#define TABLE_PREFIX_CONSUMED	"CONSUMED_"
-
-/* Counter specifications */
-typedef struct counter_spec
-{
-	char*			description;	/* Short text description of the counter */
-	char*			id;		/* Identifier of the counter */
-	char*			table_name;	/* The database table name for this counter */
-	int			type;		/* Counter type */
-	struct counter_spec*	next;
-}
-counter_spec;
-
 /* Initialise the configuration handler */
 meterd_rv meterd_init_config_handling(const char* config_path);
 

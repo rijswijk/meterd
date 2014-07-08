@@ -53,6 +53,8 @@
 #define MRV_FILE_EXISTS		0x80000009	/* The specified file already exists */
 #define MRV_DB_ERROR		0x8000000A	/* A database error occurred */
 #define MRV_CONF_NO_COUNTERS	0x8000000B	/* No counters were found under the specified configuration path */
+#define MRV_COMM_ERROR		0x8000000C	/* A communication error occurred */
+#define MRV_COMM_INTR		0x8000000D	/* Communication was interrupted by a signal */
 
 #endif /* !_METERD_ERROR_H */
 
