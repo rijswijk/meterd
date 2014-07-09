@@ -244,6 +244,11 @@ meterd_rv meterd_comm_recv_p1(telegram_ll** telegram)
 	do
 	{
 		telegram_ll* new_tel_line	= (telegram_ll*) malloc(sizeof(telegram_ll));
+
+		/* Remove \r and \n */
+		if (strchr(buf, '\r') != NULL) *strchr(buf, '\r') = '\0';
+		if (strchr(buf, '\n') != NULL) *strchr(buf, '\n') = '\0';
+
 		new_tel_line->t_line = strdup(buf);
 
 		LL_APPEND(*telegram, new_tel_line);
