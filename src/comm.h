@@ -40,7 +40,10 @@
 meterd_rv meterd_comm_init(void);
 
 /* Wait for a new P1 telegram */
-meterd_rv meterd_comm_recv_p1(char** new_telegram);
+meterd_rv meterd_comm_recv_p1(telegram_ll** telegram);
+
+/* Free space held by the telegram */
+void meterd_comm_telegram_free(telegram_ll* telegram);
 
 /* Uninitialise communication */
 meterd_rv meterd_comm_finalize(void);

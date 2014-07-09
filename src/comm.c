@@ -30,9 +30,6 @@
  * Serial communication
  */
 
-#ifndef _METERD_COMM_H
-#define _METERD_COMM_H
-
 #include "config.h"
 #include "meterd_types.h"
 #include "meterd_error.h"
@@ -46,6 +43,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <assert.h>
+#include <errno.h>
+#include "utlist.h"
 
 /* Module variables*/
 static int	comm_fd	= 0;
@@ -200,9 +200,68 @@ meterd_rv meterd_comm_init(void)
 	return MRV_OK;
 }
 
-/* Wait for a new P1 telegram */
-meterd_rv meterd_comm_recv_p1(char** new_telegram)
+/* Free space held by the telegram */
+void meterd_comm_telegram_free(telegram_ll* telegram)
 {
+	telegram_ll*	tel_it	= NULL;
+	telegram_ll*	tel_tmp	= NULL;
+
+	LL_FOREACH_SAFE(telegram, tel_it, tel_tmp)
+	{
+		free(tel_it->t_line);
+		free(tel_it);
+	}
+}
+
+/* Wait for a new P1 telegram */
+meterd_rv meterd_comm_recv_p1(telegram_ll** telegram)
+{
+	assert(telegram != NULL);
+
+	char 	buf[4096] 	= { 0 };	/* Note: we assume telegram lines are smaller than 6Kbytes */
+	int	res		= 0;
+
+	/* Read data until we encounter a '/' character, that starts a telegram */
+	do
+	{
+		res = read(comm_fd, buf, 4095);
+
+		if (res <= 0)
+		{
+			if (errno == EINTR)
+			{
+				return MRV_COMM_INTR;
+			}
+
+			return MRV_COMM_ERROR;
+		}
+	}
+	while(buf[0] != '/');
+
+	/* Now, read the telegram, which ends with a '!' character */
+	do
+	{
+		telegram_ll* new_tel_line	= (telegram_ll*) malloc(sizeof(telegram_ll));
+		new_tel_line->t_line = strdup(buf);
+
+		LL_APPEND(*telegram, new_tel_line);
+
+		res = read(comm_fd, buf, 4095);
+
+		if (res <= 0)
+		{
+			meterd_comm_telegram_free(*telegram);
+
+			if (errno == EINTR)
+			{
+				return MRV_COMM_INTR;
+			}
+
+			return MRV_COMM_ERROR;
+		}
+	}
+	while(buf[0] != '!');
+
 	return MRV_OK;
 }
 
@@ -215,6 +274,4 @@ meterd_rv meterd_comm_finalize(void)
 
 	return MRV_OK;
 }
-
-#endif /* !_METERD_COMM_H */
 

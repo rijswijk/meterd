@@ -80,5 +80,13 @@ typedef struct counter_spec
 }
 counter_spec;
 
+/* Telegram linked list */
+typedef struct telegram_ll
+{
+	char*			t_line;
+	struct telegram_ll*	next;
+}
+telegram_ll;
+
 #endif /* !_METERD_TYPES_H */
 

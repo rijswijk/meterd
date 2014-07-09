@@ -39,6 +39,7 @@
 #include "db.h"
 #include "comm.h"
 #include <stdlib.h>
+#include "utlist.h"
 
 /* Module variables */
 static void*		raw_db_h	= NULL;
@@ -156,6 +157,34 @@ meterd_rv meterd_measure_init(void)
 /* Run the main measurement loop until interrupted */
 void meterd_measure_loop(void)
 {
+	meterd_rv	rv	= MRV_OK;
+	telegram_ll*	p1	= NULL;
+	telegram_ll*	tel_it	= NULL;
+
+	while(run_measurement)
+	{
+		if ((rv = meterd_comm_recv_p1(&p1)) != MRV_OK)
+		{
+			if (rv == MRV_COMM_INTR)
+			{
+				WARNING_MSG("Interrupted by signal, continuing");
+
+				continue;
+			}
+
+			ERROR_MSG("Communication error, giving up");
+
+			break;
+		}
+
+		/* FIXME: this is test code */
+		LL_FOREACH(p1, tel_it)
+		{
+			DEBUG_MSG("%s", tel_it->t_line);
+		}
+
+		meterd_comm_telegram_free(p1);
+	}
 }
 
 /* Stop measuring */
