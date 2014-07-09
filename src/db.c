@@ -43,6 +43,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 static pthread_mutex_t meterd_db_mutex;
 
@@ -218,6 +219,31 @@ meterd_rv meterd_db_open(const char* db_name, int read_only, void** db_handle)
 	if (sqlite3_exec(internal_handle, sql, NULL, 0, &errmsg) != SQLITE_OK)
 	{
 		WARNING_MSG("Failed to turn off direct disk synchronisation (%s)", errmsg);
+
+		sqlite3_free(errmsg);
+	}
+
+	return MRV_OK;
+}
+
+/* Record a measurement in the specified table of the specified database */
+meterd_rv meterd_db_record(void* db_handle, const char* table_name, long double value, const char* unit, int timestamp)
+{
+	assert(db_handle != NULL);
+	assert(table_name != NULL);
+	assert(unit != NULL);
+
+	char*	sql		= NULL;
+	char*	errmsg		= NULL;
+	char	sql_buf[4096]	= { 0 };
+
+	sql = "INSERT INTO %s (timestamp, value, unit) VALUES (%d,%Lf,'%s');";
+
+	snprintf(sql_buf, 4096, sql, table_name, timestamp, value, unit);
+
+	if (sqlite3_exec((sqlite3*) db_handle, sql_buf, NULL, 0, &errmsg) != SQLITE_OK)
+	{
+		WARNING_MSG("Failed to record new measurement in the database (%s)", errmsg);
 
 		sqlite3_free(errmsg);
 	}

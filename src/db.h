@@ -55,6 +55,9 @@ meterd_rv meterd_db_create_tables(void* db_handle, counter_spec* counters);
 /* Open the specified database */
 meterd_rv meterd_db_open(const char* db_name, int read_only, void** db_handle);
 
+/* Record a measurement in the specified table of the specified database */
+meterd_rv meterd_db_record(void* db_handle, const char* table_name, long double value, const char* unit, int timestamp);
+
 /* Close the specified database */
 void meterd_db_close(void* db_handle);
 

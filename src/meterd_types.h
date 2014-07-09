@@ -88,5 +88,18 @@ typedef struct telegram_ll
 }
 telegram_ll;
 
+typedef struct smart_counter
+{
+	char*			id;
+	long double		value;
+	char*			unit;
+	struct smart_counter*	next;
+}
+smart_counter;
+
+#define UNIT_KW			"kW"
+#define UNIT_KWH		"kWh"
+#define UNIT_M3			"m3"
+
 #endif /* !_METERD_TYPES_H */
 

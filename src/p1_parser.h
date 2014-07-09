@@ -36,21 +36,11 @@
 #include "config.h"
 #include "meterd_types.h"
 
-typedef struct smart_counter
-{
-	char*			id;
-	long double		value;
-	char*			unit;
-	struct smart_counter*	next;
-}
-smart_counter;
-
-#define UNIT_KW			"kW"
-#define UNIT_KWH		"kWh"
-#define UNIT_M3			"m3"
-
 /* Parse the supplied P1 telegram and look for the specified gas counter */
-meterd_rv meterd_parse_p1_telegram(char* telegram_buf, const char* gas_id, smart_counter** counters);
+meterd_rv meterd_parse_p1_telegram(telegram_ll* telegram, const char* gas_id, smart_counter** counters);
+
+/* Free a linked list of counters*/
+void meterd_p1_counters_free(smart_counter* counters);
 
 #endif /* !_P1_PARSER_H */
 

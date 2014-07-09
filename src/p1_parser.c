@@ -41,9 +41,9 @@
 #include "meterd_error.h"
 #include "p1_parser.h"
 
-meterd_rv meterd_parse_p1_telegram(char* telegram_buf, const char* gas_id, smart_counter** counters)
+meterd_rv meterd_parse_p1_telegram(telegram_ll* telegram, const char* gas_id, smart_counter** counters)
 {
-	assert(telegram_buf != NULL);
+	assert(telegram != NULL);
 	assert(counters != NULL);
 
 	const char*	re_simple	= "[0-9]-[0-9]:([0-9]+\\.[0-9]+\\.[0-9]+)[(](.*)[)]";
@@ -53,12 +53,11 @@ meterd_rv meterd_parse_p1_telegram(char* telegram_buf, const char* gas_id, smart
 	regmatch_t	gas_m[2];
 	regmatch_t	counterval_m[3];
 	int		next_is_gas	= 0;
-	char* 		parse_string 	= telegram_buf;
-	char*		telegram_line 	= NULL;
 	regex_t		re_simple_c	= { 0 };
 	regex_t		re_gas_c	= { 0 };
 	regex_t		re_counterval_c	= { 0 };
 	int		rv		= 0;
+	telegram_ll*	telegram_it	= NULL;
 
 	/* Set up regular expressions */
 	if ((rv = regcomp(&re_simple_c, re_simple, REG_EXTENDED)) != 0)
@@ -88,13 +87,13 @@ meterd_rv meterd_parse_p1_telegram(char* telegram_buf, const char* gas_id, smart
 	}
 
 	/* Parse the telegram */
-	while ((telegram_line = strsep(&parse_string, "\r\n")) != NULL)
+	LL_FOREACH(telegram, telegram_it)
 	{
 		if (next_is_gas)
 		{
 			next_is_gas = 0;
 
-			if ((rv = regexec(&re_gas_c, telegram_line, 2, gas_m, 0)) == 0)
+			if ((rv = regexec(&re_gas_c, telegram_it->t_line, 2, gas_m, 0)) == 0)
 			{
 				size_t		val_len		= gas_m[1].rm_eo - gas_m[1].rm_so;
 				char		val_buf[256]	= { 0 };
@@ -107,7 +106,7 @@ meterd_rv meterd_parse_p1_telegram(char* telegram_buf, const char* gas_id, smart
 				else
 				{
 					/* Copy value */
-					strncpy(val_buf, &telegram_line[gas_m[1].rm_so], val_len);
+					strncpy(val_buf, &telegram_it->t_line[gas_m[1].rm_so], val_len);
 
 					/* Add new counter */
 					new_counter = (smart_counter*) malloc(sizeof(smart_counter));
@@ -130,7 +129,7 @@ meterd_rv meterd_parse_p1_telegram(char* telegram_buf, const char* gas_id, smart
 				}
 			}
 		}
-		else if ((rv = regexec(&re_simple_c, telegram_line, 3, simple_m, 0)) == 0)
+		else if ((rv = regexec(&re_simple_c, telegram_it->t_line, 3, simple_m, 0)) == 0)
 		{
 			size_t 		id_len 		= simple_m[1].rm_eo - simple_m[1].rm_so;
 			size_t 		val_len		= simple_m[2].rm_eo - simple_m[2].rm_so;
@@ -150,7 +149,7 @@ meterd_rv meterd_parse_p1_telegram(char* telegram_buf, const char* gas_id, smart
 
 			/* First, copy the ID of the counter so we can check if this is a gas meter */
 			memset(new_id, 0, id_len + 1);
-			strncpy(new_id, &telegram_line[simple_m[1].rm_so], id_len);
+			strncpy(new_id, &telegram_it->t_line[simple_m[1].rm_so], id_len);
 
 			if ((gas_id != NULL) && (strlen(gas_id) == id_len) && (strcmp(gas_id, new_id) == 0))
 			{
@@ -176,7 +175,7 @@ meterd_rv meterd_parse_p1_telegram(char* telegram_buf, const char* gas_id, smart
 				}
 
 				memset(new_val, 0, val_len + 1);
-				strncpy(new_val, &telegram_line[simple_m[2].rm_so], val_len);
+				strncpy(new_val, &telegram_it->t_line[simple_m[2].rm_so], val_len);
 
 				/* Match the value */
 				if ((rv = regexec(&re_counterval_c, new_val, 3, counterval_m, 0)) == 0)
@@ -234,5 +233,19 @@ meterd_rv meterd_parse_p1_telegram(char* telegram_buf, const char* gas_id, smart
 	regfree(&re_counterval_c);
 
 	return 0;
+}
+
+/* Free a linked list of counters*/
+void meterd_p1_counters_free(smart_counter* counters)
+{
+	smart_counter*	ctr_it	= NULL;
+	smart_counter*	ctr_tmp	= NULL;
+
+	LL_FOREACH_SAFE(counters, ctr_it, ctr_tmp)
+	{
+		free(ctr_it->id);
+		free(ctr_it->unit);
+		free(ctr_it);
+	}
 }
 
