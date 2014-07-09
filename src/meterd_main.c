@@ -108,6 +108,20 @@ void signal_handler(int signum)
 		meterd_measure_interrupt();
 
 		break;
+	case SIGTERM:
+		INFO_MSG("Caught SIGTERM, exiting");
+
+		/* Stop running measurement */
+		meterd_measure_interrupt();
+
+		break;
+	case SIGINT:
+		INFO_MSG("Caught SIGINT, exiting");
+
+		/* Stop running measurement */
+		meterd_measure_interrupt();
+
+		break;
 	case SIGSEGV:
 		ERROR_MSG("Caught SIGSEGV");
 		exit(-1);
@@ -280,6 +294,8 @@ int main(int argc, char* argv[])
 	signal(SIGILL, signal_handler);
 	signal(SIGPIPE, signal_handler);
 	signal(SIGQUIT, signal_handler);
+	signal(SIGTERM, signal_handler);
+	signal(SIGINT, signal_handler);
 	signal(SIGSEGV, signal_handler);
 	signal(SIGSYS, signal_handler);
 	signal(SIGXCPU, signal_handler);
@@ -321,6 +337,8 @@ int main(int argc, char* argv[])
 	signal(SIGILL, SIG_DFL);
 	signal(SIGPIPE, SIG_DFL);
 	signal(SIGQUIT, SIG_DFL);
+	signal(SIGTERM, SIG_DFL);
+	signal(SIGINT, SIG_DFL);
 	signal(SIGSEGV, SIG_DFL);
 	signal(SIGSYS, SIG_DFL);
 	signal(SIGXCPU, SIG_DFL);
