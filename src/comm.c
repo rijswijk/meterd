@@ -235,6 +235,8 @@ meterd_rv meterd_comm_recv_p1(telegram_ll** telegram)
 
 			return MRV_COMM_ERROR;
 		}
+
+		buf[res] = '\0';
 	}
 	while(buf[0] != '/');
 
@@ -259,6 +261,8 @@ meterd_rv meterd_comm_recv_p1(telegram_ll** telegram)
 
 			return MRV_COMM_ERROR;
 		}
+
+		buf[res] = '\0';
 	}
 	while(buf[0] != '!');
 
