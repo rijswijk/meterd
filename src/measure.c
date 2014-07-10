@@ -353,7 +353,7 @@ void meterd_measure_loop(void)
 								ctr_it->fivemin_ts	= now;
 							}
 
-							if ((ctr_it->hourly_db_h != NULL) && ((now - ctr_it->hourly_ts) >= 300))
+							if ((ctr_it->hourly_db_h != NULL) && ((now - ctr_it->hourly_ts) >= 3600))
 							{
 								ctr_it->hourly_cumul /= (long double) ctr_it->hourly_ctr;
 
