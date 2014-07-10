@@ -251,6 +251,109 @@ meterd_rv meterd_db_record(void* db_handle, const char* table_name, long double 
 	return MRV_OK;
 }
 
+static int meterd_db_get_config_cb(void* data, int argc, char* argv[], char* colname[])
+{
+	assert(data != NULL);
+
+	char**	table_name = (char**) data;
+
+	if (argc != 1)
+	{
+		ERROR_MSG("Invalid database format detected");
+
+		return -1;
+	}
+
+	*table_name = strdup(argv[0]);
+
+	return 0;
+}
+
+static int meterd_db_get_results_cb(void* data, int argc, char* argv[], char* colname[])
+{
+	assert(data != NULL);
+
+	db_res_ctr** results = (db_res_ctr**) data;
+	db_res_ctr* new_result = NULL;
+
+	if (argc != 3)
+	{
+		ERROR_MSG("Invalid database format detected");
+	}
+
+	new_result = (db_res_ctr*) malloc(sizeof(db_res_ctr));
+
+	new_result->timestamp = atoi(argv[0]);
+	new_result->value = strtold(argv[1], NULL);
+	new_result->unit = strdup(argv[2]);
+
+	LL_APPEND(*results, new_result);
+
+	return 0;
+}
+
+/* Retrieve results from the database */
+meterd_rv meterd_db_get_results(void* db_handle, const char* id, long double invert, db_res_ctr** results, int select_from)
+{
+	assert(id != NULL);
+	assert(db_handle != NULL);
+	assert(results != NULL);
+
+	char* 	sql		= NULL;
+	char* 	errmsg		= NULL;
+	char	sql_buf[4096]	= { 0 };
+	char*	table_name	= NULL;
+
+	DEBUG_MSG("Retrieving data for ID %s", id);
+
+	/* First, find the counter in the configuration table of the database */
+	sql = "SELECT table_name FROM CONFIGURATION WHERE id='%s';";
+
+	snprintf(sql_buf, 4096, sql, id);
+
+	if (sqlite3_exec((sqlite3*) db_handle, sql_buf, meterd_db_get_config_cb, (void*) &table_name, &errmsg) != SQLITE_OK)
+	{
+		ERROR_MSG("Failed to retrieve table name for ID %s from the database (%s)", id, errmsg);
+
+		sqlite3_free(errmsg);
+
+		return MRV_DB_ERROR;
+	}
+
+	DEBUG_MSG("Data for ID %s is in table %s", id, table_name);
+
+	/* Now, select the data for the specified interval */
+	sql = "SELECT * FROM %s WHERE timestamp >= %d;";
+
+	snprintf(sql_buf, 4096, sql, table_name, select_from);
+
+	if (sqlite3_exec((sqlite3*) db_handle, sql_buf, meterd_db_get_results_cb, (void*) results, &errmsg) != SQLITE_OK)
+	{
+		ERROR_MSG("Failed to retrieve results from table %s (%s)", table_name, errmsg);
+
+		sqlite3_free(errmsg);
+
+		free(table_name);
+
+		return MRV_DB_ERROR;
+	}
+
+	/* Apply inversion */
+	if (invert < 0.0f)
+	{
+		db_res_ctr* res_it = NULL;
+
+		LL_FOREACH(*results, res_it)
+		{
+			res_it->value *= invert;
+		}
+	}
+
+	free(table_name);
+
+	return MRV_OK;
+}
+
 /* Close the specified database */
 void meterd_db_close(void* db_handle)
 {

@@ -88,6 +88,7 @@ typedef struct telegram_ll
 }
 telegram_ll;
 
+/* Smart counter data from a telegram */
 typedef struct smart_counter
 {
 	char*			id;
@@ -100,6 +101,25 @@ smart_counter;
 #define UNIT_KW			"kW"
 #define UNIT_KWH		"kWh"
 #define UNIT_M3			"m3"
+
+/* Counter selection for output */
+typedef struct sel_counter
+{
+	char*			id;
+	long double		invert;
+	struct sel_counter*	next;
+}
+sel_counter;
+
+/* Counter values from the database */
+typedef struct db_res_ctr
+{
+	int			timestamp;
+	long double		value;
+	char*			unit;
+	struct db_res_ctr*	next;
+}
+db_res_ctr;
 
 #endif /* !_METERD_TYPES_H */
 

@@ -56,13 +56,24 @@ static int log_stdout = 0;
 /* Initialise logging */
 meterd_rv meterd_init_log(void)
 {
-	char* log_file_path = NULL;
+	int loglevel = METERD_LOGLEVEL;
 
 	/* Retrieve the log level specified in the configuration file; this will override the default log level */
-	if (meterd_conf_get_int("logging", "loglevel", &log_level, METERD_LOGLEVEL) != MRV_OK)
+	if (meterd_conf_get_int("logging", "loglevel", &loglevel, METERD_LOGLEVEL) != MRV_OK)
 	{
 		return MRV_LOG_INIT_FAIL;
 	}
+
+	return meterd_init_log_at_level(loglevel);
+}
+
+
+/* Initialise logging at a certain loglevel */
+meterd_rv meterd_init_log_at_level(int loglevel)
+{
+	char* log_file_path = NULL;
+
+	log_level = loglevel;
 
 	/* Retrieve the file name of the log file, if set */
 	if (meterd_conf_get_string("logging", "filelog", &log_file_path, NULL) != MRV_OK)

@@ -46,6 +46,9 @@
 /* Initialise logging */
 meterd_rv meterd_init_log(void);
 
+/* Initialise logging at a certain loglevel */
+meterd_rv meterd_init_log_at_level(int loglevel);
+
 /* Uninitialise logging */
 meterd_rv meterd_uninit_log(void);
 
