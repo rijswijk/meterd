@@ -116,8 +116,8 @@ meterd_rv meterd_db_create(const char* db_name, int force_create, void** db_hand
 
 	*db_handle = (void*) internal_handle;
 
-	/* Turn off direct disk synchronisation (speed improvement) */
-	sql = "PRAGMA synchronous=OFF;";
+	/* Turn on direct disk synchronisation (data immediately available) */
+	sql = "PRAGMA synchronous=ON;";
 
 	if (sqlite3_exec(internal_handle, sql, NULL, 0, &errmsg) != SQLITE_OK)
 	{
@@ -213,8 +213,8 @@ meterd_rv meterd_db_open(const char* db_name, int read_only, void** db_handle)
 	*db_handle = (void*) internal_handle;
 
 	
-	/* Turn off direct disk synchronisation (speed improvement) */
-	sql = "PRAGMA synchronous=OFF;";
+	/* Turn off direct disk synchronisation (data immediately available) */
+	sql = "PRAGMA synchronous=ON;";
 
 	if (sqlite3_exec(internal_handle, sql, NULL, 0, &errmsg) != SQLITE_OK)
 	{

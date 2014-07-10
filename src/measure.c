@@ -235,7 +235,7 @@ meterd_rv meterd_measure_init(void)
 		counter_it->cumul_db_h		= cumul_db_h;
 	}
 
-	LL_APPEND(counters, new_counter);
+	LL_CONCAT(counters, new_counter);
 
 	/* Add production counters */
 	new_counter	= NULL;
@@ -254,7 +254,7 @@ meterd_rv meterd_measure_init(void)
 		counter_it->cumul_db_h		= cumul_db_h;
 	}
 
-	LL_APPEND(counters, new_counter);
+	LL_CONCAT(counters, new_counter);
 
 	/* Get gas identifier */
 	if ((rv = meterd_conf_get_string("database", "gascounter.id", &gas_id, NULL)) != MRV_OK)
@@ -353,7 +353,7 @@ void meterd_measure_loop(void)
 								ctr_it->fivemin_ts	= now;
 							}
 
-							if ((ctr_it->hourly_db_h != NULL) && ((now - ctr_it->hourly_ts) >= 300))
+							if ((ctr_it->hourly_db_h != NULL) && ((now - ctr_it->hourly_ts) >= 3600))
 							{
 								ctr_it->hourly_cumul /= (long double) ctr_it->hourly_ctr;
 
