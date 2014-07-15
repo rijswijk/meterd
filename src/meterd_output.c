@@ -329,6 +329,19 @@ void meterd_output(sel_counter* sel_counters, const char* dbname, const char* ou
 		}
 	}
 
+	/* Clean up spurious results */
+	for (i = 0; i < ctr_count; i++)
+	{
+		while(result_it[i] != NULL)
+		{
+			result_tmp[i] = result_it[i];
+			result_it[i] = result_it[i]->next;
+
+			free(result_tmp[i]->unit);
+			free(result_tmp[i]);
+		}
+	}
+
 	free(results);
 	free(result_it);
 	free(result_tmp);
