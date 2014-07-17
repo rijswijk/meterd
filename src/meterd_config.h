@@ -64,6 +64,12 @@ char* meterd_conf_create_table_name(const char* id, int type);
 /* Clean up counter specifications */
 void meterd_conf_free_counter_specs(counter_spec* counter_specs);
 
+/* Retrieve the configured recurring tasks */
+meterd_rv meterd_conf_get_scheduled_tasks(scheduled_task** tasks);
+
+/* Clean up scheduled tasks */
+void meterd_conf_free_scheduled_tasks(scheduled_task* tasks);
+
 /* Release the configuration handler */
 meterd_rv meterd_uninit_config_handling(void);
 

@@ -18,7 +18,9 @@ meterd_SOURCES =		meterd_main.c \
 				measure.c \
 				measure.h \
 				comm.c \
-				comm.h \
+				comm.h \ 
+				tasksched.c \
+				tasksched.h \
 				utlist.h \
 				uthash.h
 

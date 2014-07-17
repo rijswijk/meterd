@@ -370,6 +370,139 @@ void meterd_conf_free_counter_specs(counter_spec* counter_specs)
 	}
 }
 
+/* Retrieve the configured recurring tasks */
+meterd_rv meterd_conf_get_scheduled_tasks(scheduled_task** tasks)
+{
+	assert(tasks != NULL);
+
+	unsigned int 		tasks_count	= 0;
+	unsigned int		i		= 0;
+	unsigned int		j		= 0;
+	config_setting_t*	tasks_conf	= NULL;
+
+	tasks_conf = config_lookup(&configuration, "tasks");
+
+	if (tasks_conf == NULL)
+	{
+		/* Configuring tasks is optional, but inform the user anyway */
+		INFO_MSG("No tasks configured");
+
+		return MRV_OK;
+	}
+
+	tasks_count = config_setting_length(tasks_conf);
+
+	for (i = 0; i < tasks_count; i++)
+	{
+		config_setting_t*	task		= NULL;
+		scheduled_task*		new_task	= NULL;
+
+		task = config_setting_get_elem(tasks_conf, i);
+
+		if (task != NULL)
+		{
+			unsigned int 	task_elem_count	= config_setting_length(task);
+			const char*	description	= NULL;
+			long int	interval	= 0;
+
+			/* First, get the known elements of the task */
+			if ((config_setting_lookup_string(task, "description", &description) != CONFIG_TRUE) || (description == NULL))
+			{
+				ERROR_MSG("No description for task %s", config_setting_name(task));
+
+				continue;
+			}
+
+			if (config_setting_lookup_int(task, "interval", &interval) != CONFIG_TRUE)
+			{
+				ERROR_MSG("No interval specified for task %s", config_setting_name(task));
+
+				continue;
+			}
+
+			if (interval <= 0)
+			{
+				ERROR_MSG("Invalid interval %d specified for task %s (must be > 0)", interval, config_setting_name(task));
+
+				continue;
+			}
+
+			new_task = (scheduled_task*) malloc(sizeof(scheduled_task));
+
+			memset(new_task, 0, sizeof(scheduled_task));
+
+			for (j = 0; j < task_elem_count; j++)
+			{
+				config_setting_t*	cmd	= NULL;
+				const char*		cmd_val	= NULL;
+
+				cmd = config_setting_get_elem(task, j);
+
+				if (cmd != NULL)
+				{
+					/* Check if this is a command */
+					if ((strlen(config_setting_name(cmd)) >= 3) && !strncasecmp(config_setting_name(cmd), "cmd", 3))
+					{
+						cmd_val = config_setting_get_string(cmd);
+
+						if (cmd_val == NULL)
+						{
+							WARNING_MSG("Empty command %s in task %s", config_setting_name(cmd), config_setting_name(task));
+
+							continue;
+						}
+						
+						new_task->num_cmds++;
+
+						new_task->cmds = (char**) realloc(new_task->cmds, new_task->num_cmds * sizeof(char*));
+						new_task->cmds[new_task->num_cmds - 1] = strdup(cmd_val);
+					}
+				}
+			}
+
+			if (new_task->num_cmds == 0)
+			{
+				ERROR_MSG("Task %s has no commands", config_setting_name(task));
+
+				free(new_task);
+
+				continue;
+			}
+
+			/* Copy in remaining configuration */
+			new_task->description = strdup(description);
+			new_task->interval = interval;
+
+			LL_APPEND(*tasks, new_task);
+		}
+	}
+
+	return MRV_OK;
+}
+
+/* Clean up scheduled tasks */
+void meterd_conf_free_scheduled_tasks(scheduled_task* tasks)
+{
+	scheduled_task*	task_it		= NULL;
+	scheduled_task*	task_tmp	= NULL;
+	size_t		i		= 0;
+
+	LL_FOREACH_SAFE(tasks, task_it, task_tmp)
+	{
+		LL_DELETE(tasks, task_it);
+
+		free(task_it->description);
+
+		for (i = 0; i < task_it->num_cmds; i++)
+		{
+			free(task_it->cmds[i]);
+		}
+
+		free(task_it->cmds);
+		free(task_it);
+	}
+}
+
 /* Get a pointer to the internal configuration structure */
 const config_t* meterd_conf_get_config_t(void)
 {

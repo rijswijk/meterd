@@ -121,5 +121,18 @@ typedef struct db_res_ctr
 }
 db_res_ctr;
 
+/* Scheduled tasks */
+typedef struct scheduled_task
+{
+	int			interval;
+	time_t			last_executed;
+	int			last_rv;
+	char*			description;
+	char**			cmds;
+	size_t			num_cmds;
+	struct scheduled_task*	next;
+}
+scheduled_task;
+
 #endif /* !_METERD_TYPES_H */
 

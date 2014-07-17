@@ -37,6 +37,7 @@
 #include "meterd_config.h"
 #include "meterd_log.h"
 #include "measure.h"
+#include "tasksched.h"
 
 void version(void)
 {
@@ -308,17 +309,32 @@ int main(int argc, char* argv[])
 	}
 	else
 	{
-		/* TODO: initialise and start task thread */
-	
-		/* Run measurement loop */
-		meterd_measure_loop();
-	
-		/* TODO: stop and uninitialise task thread */
-	
-		/* Uninitialise the measurement loop */
-		if (meterd_measure_finalize() != MRV_OK)
+		if (meterd_tasksched_init() != MRV_OK)
 		{
-			WARNING_MSG("Failed to properly uninitialise the measurement subsystem");
+			ERROR_MSG("Failed to intialise task scheduling, giving up");
+		}
+		else
+		{
+			/* Start task scheduler */
+			meterd_tasksched_start();
+
+			/* Run measurement loop */
+			meterd_measure_loop();
+
+			/* Stop task scheduler */
+			meterd_tasksched_stop();
+
+			/* Uninitialise task scheduling */
+			if (meterd_tasksched_finalize() != MRV_OK)
+			{
+				WARNING_MSG("Failed to properly uninitialise the task scheduler");
+			}
+
+			/* Uninitialise the measurement loop */
+			if (meterd_measure_finalize() != MRV_OK)
+			{
+				WARNING_MSG("Failed to properly uninitialise the measurement subsystem");
+			}
 		}
 	}
 
