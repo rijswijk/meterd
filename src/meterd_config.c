@@ -403,7 +403,14 @@ meterd_rv meterd_conf_get_scheduled_tasks(scheduled_task** tasks)
 		{
 			unsigned int 	task_elem_count	= config_setting_length(task);
 			const char*	description	= NULL;
-			long int	interval	= 0;
+
+			/* Unfortunately, the kludge below is necessary since the interface for config_lookup_int changed between
+	 		 * libconfig version 1.3 and 1.4 */
+#ifndef LIBCONFIG_VER_MAJOR /* this means it is a pre 1.4 version */
+			long int 	interval 	= 0;
+#else
+			int 		interval 	= 0;
+#endif /* libconfig API kludge */
 
 			/* First, get the known elements of the task */
 			if ((config_setting_lookup_string(task, "description", &description) != CONFIG_TRUE) || (description == NULL))
