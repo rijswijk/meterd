@@ -1,0 +1,116 @@
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="tabs.css">
+<title>Smart Meter Monitoring Daemon</title>
+
+<script type="text/javascript">
+var tabLinks = new Array();
+    var contentDivs = new Array();
+
+    function init() {
+
+      // Grab the tab links and content divs from the page
+      var tabListItems = document.getElementById('tabs').childNodes;
+      for ( var i = 0; i < tabListItems.length; i++ ) {
+        if ( tabListItems[i].nodeName == "LI" ) {
+          var tabLink = getFirstChildWithTagName( tabListItems[i], 'A' );
+          var id = getHash( tabLink.getAttribute('href') );
+          tabLinks[id] = tabLink;
+          contentDivs[id] = document.getElementById( id );
+        }
+      }
+
+      // Assign onclick events to the tab links, and
+      // highlight the first tab
+      var i = 0;
+
+      for ( var id in tabLinks ) {
+        tabLinks[id].onclick = showTab;
+        tabLinks[id].onfocus = function() { this.blur() };
+        if ( i == 0 ) tabLinks[id].className = 'selected';
+        i++;
+      }
+
+      // Hide all content divs except the first
+      var i = 0;
+
+      for ( var id in contentDivs ) {
+        if ( i != 0 ) contentDivs[id].className = 'tabContent hide';
+        i++;
+      }
+    }
+
+    function showTab() {
+      var selectedId = getHash( this.getAttribute('href') );
+
+      // Highlight the selected tab, and dim all others.
+      // Also show the selected content div, and hide all others.
+      for ( var id in contentDivs ) {
+        if ( id == selectedId ) {
+          tabLinks[id].className = 'selected';
+          contentDivs[id].className = 'tabContent';
+        } else {
+          tabLinks[id].className = '';
+          contentDivs[id].className = 'tabContent hide';
+        }
+      }
+
+      // Stop the browser following the link
+      return false;
+    }
+
+    function getFirstChildWithTagName( element, tagName ) {
+      for ( var i = 0; i < element.childNodes.length; i++ ) {
+        if ( element.childNodes[i].nodeName == tagName ) return element.childNodes[i];
+      }
+    }
+
+    function getHash( url ) {
+      var hashPos = url.lastIndexOf ( '#' );
+      return url.substring( hashPos + 1 );
+    }
+</script>
+
+</head>
+<body onload="init()">
+
+<ul id="tabs">
+	<li><a href="#raw-hour">Raw (hour)</a></li>
+	<li><a href="#raw-day">Raw (day)</a></li>
+	<li><a href="#raw-week">Raw (week)</a></li>
+	<li><a href="#consumed-day">Consumed/produced (day)</a></li>
+	<li><a href="#consumed-week">Consumed/produced (week)</a></li>
+	<li><a href="#gas-day">Gas (day)</a></li>
+	<li><a href="#gas-week">Gas (week)</a></li>
+</ul>
+
+<div class="tabContent" id="raw-hour">
+	<img src="img/raw-hour.svg" align=middle/>
+</div>
+
+<div class="tabContent" id="raw-day">
+	<img src="img/raw-day.svg" align=middle/>
+</div>
+
+<div class="tabContent" id="raw-week">
+	<img src="img/raw-week.svg" align=middle/>
+</div>
+
+<div class="tabContent" id="consumed-day">
+	<img src="img/consumed-day.svg" align=middle/>
+</div>
+
+<div class="tabContent" id="consumed-week">
+	<img src="img/consumed-week.svg" align=middle/>
+</div>
+
+<div class="tabContent" id="gas-day">
+	<img src="img/gas-day.svg" align=middle/>
+</div>
+
+<div class="tabContent" id="gas-week">
+	<img src="img/gas-week.svg" align=middle/>
+</div>
+
+</body>
+</html>
