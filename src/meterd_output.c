@@ -60,7 +60,7 @@ void usage(void)
 	printf("Usage:\n");
 	printf("\tmeterd-output [-c <config>] [-q] [-a] [-p] [-C] [-s <id>] [-S <id>]\n");
 	printf("\t              -d <database> [-o <file>] -i <interval> [-y <offset]\n");
-	printf("\t              [-r <file>]\n");
+	printf("\t              [-x] [-r <file>]\n");
 	printf("\tmeterd-output -h\n");
 	printf("\tmeterd-output -v\n");
 	printf("\n");
@@ -82,6 +82,8 @@ void usage(void)
 	printf("\t              current time)\n");
 	printf("\t-y <offset>   Output GNUPlot y-range statement based on counter values\n");
 	printf("\t              in the output data (requires -r)\n");
+	printf("\t-x            Output GNUPlot x-range statement based on timestamps\n");
+	printf("\t              (requires -r)\n");
 	printf("\t-r <file>     File to write GNUPlot range statements to\n");
 	printf("\n");
 	printf("\t-h            Print this help message\n");
@@ -89,7 +91,7 @@ void usage(void)
 	printf("\t-v            Print the version number\n");
 }
 
-void meterd_output(sel_counter* sel_counters, const char* dbname, const char* outfile, const int format, const int additive, const int interval, const char* range_file, const int give_y_range, const long double y_offset)
+void meterd_output(sel_counter* sel_counters, const char* dbname, const char* outfile, const int format, const int additive, const int interval, const char* range_file, const int give_y_range, const long double y_offset, const int give_x_range)
 {
 	db_res_ctr**	results		= NULL;
 	db_res_ctr**	result_it	= NULL;
@@ -104,6 +106,8 @@ void meterd_output(sel_counter* sel_counters, const char* dbname, const char* ou
 	long double	added		= 0.0f;
 	long double	max_y		= -100000000.0f;
 	long double	min_y		= 100000000.0f;
+	int		min_x		= 0x7fffffff;
+	int		max_x		= 0;
 
 	if (outfile != NULL)
 	{
@@ -239,6 +243,15 @@ void meterd_output(sel_counter* sel_counters, const char* dbname, const char* ou
 					 * timestamps are the same in all tables per row
 					 */
 					fprintf(out, "%d", result_it[i]->timestamp);
+
+					if (result_it[i]->timestamp < min_x)
+					{
+						min_x = result_it[i]->timestamp;
+					}
+					else if (result_it[i]->timestamp > max_x)
+					{
+						max_x = result_it[i]->timestamp;
+					}
 				}
 
 				if (!additive)
@@ -322,6 +335,15 @@ void meterd_output(sel_counter* sel_counters, const char* dbname, const char* ou
 					 * timestamps are the same in all tables per row
 					 */
 					fprintf(out, "%10d", result_it[i]->timestamp);
+
+					if (result_it[i]->timestamp < min_x)
+					{
+						min_x = result_it[i]->timestamp;
+					}
+					else if (result_it[i]->timestamp > max_x)
+					{
+						max_x = result_it[i]->timestamp;
+					}
 				}
 
 				if (!additive)
@@ -411,7 +433,8 @@ void meterd_output(sel_counter* sel_counters, const char* dbname, const char* ou
 			return;
 		}
 
-		fprintf(range_fd, "set yrange [%3.3Lf:%3.3Lf]\n", min_y - y_offset, max_y + y_offset);
+		if (give_x_range) fprintf(range_fd, "set xrange [\"%d\":\"%d\"]\n", min_x, max_x);
+		if (give_y_range) fprintf(range_fd, "set yrange [%3.3Lf:%3.3Lf]\n", min_y - y_offset, max_y + y_offset);
 		fclose(range_fd);
 	}
 }
@@ -432,10 +455,11 @@ int main(int argc, char* argv[])
 	int		interval	= 0;
 	int		give_y_range	= 0;
 	long double	y_offset	= 0.0f;
+	int		give_x_range	= 0;
 	char*		range_file	= NULL;
 	int 		c 		= 0;
 	
-	while ((c = getopt(argc, argv, "c:qapCs:S:d:o:i:r:x:y:hv")) != -1)
+	while ((c = getopt(argc, argv, "c:qapCs:S:d:o:i:r:xy:hv")) != -1)
 	{
 		switch(c)
 		{
@@ -478,6 +502,9 @@ int main(int argc, char* argv[])
 		case 'y':
 			give_y_range = 1;
 			y_offset = strtold(optarg, NULL);
+			break;
+		case 'x':
+			give_x_range = 1;
 			break;
 		case 'r':
 			range_file = strdup(optarg);
@@ -552,9 +579,9 @@ int main(int argc, char* argv[])
 		return MRV_PARAM_INVALID;
 	}
 
-	if (give_y_range && (range_file == NULL))
+	if ((give_x_range || give_y_range) && (range_file == NULL))
 	{
-		ERROR_MSG("Must specify -r in combination with -y");
+		ERROR_MSG("Must specify -r in combination with -x and/or -y");
 
 		return MRV_PARAM_INVALID;
 	}
@@ -563,7 +590,7 @@ int main(int argc, char* argv[])
 	INFO_MSG("Processing data output request");
 
 	/* Generate the requested output */
-	meterd_output(sel_counters, dbname, outfile, format_gnuplot ? FORMAT_GNUPLOT : FORMAT_CSV, additive, interval, range_file, give_y_range, y_offset);
+	meterd_output(sel_counters, dbname, outfile, format_gnuplot ? FORMAT_GNUPLOT : FORMAT_CSV, additive, interval, range_file, give_y_range, y_offset, give_x_range);
 
 	/* Uninitialise logging */
 	if (meterd_uninit_log() != MRV_OK)

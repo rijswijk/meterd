@@ -1,0 +1,91 @@
+#!/bin/sh
+#
+# meterd	This shell script takes care of starting and stopping
+#		the Smart Meter Monitoring Daemon (meterd)
+#
+# chkconfig:   - 14 86
+
+### BEGIN INIT INFO
+# Provides: meterd
+# Required-Start: $local_fs
+# Required-Stop: $local_fs
+# Should-Start: $syslog
+# Should-Stop: $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:
+# Short-Description: meterd Smart Meter Monitoring Daemon
+# Description:  meterd Smart Meter Monitoring Daemon
+### END INIT INFO
+
+# Source function library.
+. /lib/lsb/init-functions
+
+prog="meterd"
+exec="/usr/local/sbin/meterd"
+config="/etc/meterd.conf"
+pidfile="/var/run/meterd.pid"
+
+[ -e /etc/sysconfig/$prog ] && . /etc/sysconfig/$prog
+
+start() {
+    [ -x $exec ] || exit 5
+    [ -f $config ] || exit 6
+    log_daemon_msg "Starting Smart Meter Monitoring Daemon" "meterd"
+
+    # if not running, start it up here
+    start_daemon $exec -c $config
+    retval=$?
+    echo
+    log_end_msg $?
+    return $retval
+}
+
+stop() {
+    log_daemon_msg "Stopping Smart Meter Monitoring Daemon" "meterd"
+    # stop it here, often "killproc $prog"
+    killproc -p $pidfile $prog
+    retval=$?
+    echo
+    log_end_msg $retval
+    return $retval
+}
+
+restart() {
+    stop
+    start
+}
+
+reload() {
+    kill -HUP `cat $pidfile`
+}
+
+force_reload() {
+    restart
+}
+
+case "$1" in
+    start)
+        $1
+        ;;
+    stop)
+        $1
+        ;;
+    restart)
+        $1
+        ;;
+    reload)
+        $1
+        ;;
+    force-reload)
+        force_reload
+        ;;
+    status)
+        ;;
+    condrestart|try-restart)
+        restart
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|status|restart|condrestart|try-restart|reload|force-reload}"
+        exit 2
+esac
+exit $?
