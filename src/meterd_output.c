@@ -277,11 +277,11 @@ void meterd_output(sel_counter* sel_counters, const char* dbname, const char* ou
 			{
 				fprintf(out, ",%0.3Lf", added);
 
-				if (additive < min_y)
+				if (added < min_y)
 				{
 					min_y = added;
 				}
-				else if (additive > max_y)
+				else if (added > max_y)
 				{
 					max_y = added;
 				}
@@ -371,11 +371,11 @@ void meterd_output(sel_counter* sel_counters, const char* dbname, const char* ou
 
 				if (added < min_y)
 				{
-					min_y = additive;
+					min_y = added;
 				}
 				else if (added > max_y)
 				{
-					max_y = additive;
+					max_y = added;
 				}
 			}
 
