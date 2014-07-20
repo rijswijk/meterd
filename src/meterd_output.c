@@ -59,7 +59,8 @@ void usage(void)
 	printf("Data series output tool\n");
 	printf("Usage:\n");
 	printf("\tmeterd-output [-c <config>] [-q] [-a] [-p] [-C] [-s <id>] [-S <id>]\n");
-	printf("\t              -d <database> [-o <file>] -i <interval>\n");
+	printf("\t              -d <database> [-o <file>] -i <interval> [-y <offset]\n");
+	printf("\t              [-r <file>]\n");
 	printf("\tmeterd-output -h\n");
 	printf("\tmeterd-output -v\n");
 	printf("\n");
@@ -79,13 +80,16 @@ void usage(void)
 	printf("\t              (defaults to stdout)\n");
 	printf("\t-i <interval> Interval in seconds to output data for (relative to the\n");
 	printf("\t              current time)\n");
+	printf("\t-y <offset>   Output GNUPlot y-range statement based on counter values\n");
+	printf("\t              in the output data (requires -r)\n");
+	printf("\t-r <file>     File to write GNUPlot range statements to\n");
 	printf("\n");
 	printf("\t-h            Print this help message\n");
 	printf("\n");
 	printf("\t-v            Print the version number\n");
 }
 
-void meterd_output(sel_counter* sel_counters, const char* dbname, const char* outfile, int format, int additive, int interval)
+void meterd_output(sel_counter* sel_counters, const char* dbname, const char* outfile, const int format, const int additive, const int interval, const char* range_file, const int give_y_range, const long double y_offset)
 {
 	db_res_ctr**	results		= NULL;
 	db_res_ctr**	result_it	= NULL;
@@ -98,6 +102,8 @@ void meterd_output(sel_counter* sel_counters, const char* dbname, const char* ou
 	int		select_from	= ((int) time(NULL)) - interval;
 	FILE*		out		= stdout;
 	long double	added		= 0.0f;
+	long double	max_y		= -100000000.0f;
+	long double	min_y		= 100000000.0f;
 
 	if (outfile != NULL)
 	{
@@ -238,6 +244,15 @@ void meterd_output(sel_counter* sel_counters, const char* dbname, const char* ou
 				if (!additive)
 				{
 					fprintf(out, ",%0.3Lf", result_it[i]->value);
+
+					if (result_it[i]->value < min_y)
+					{
+						min_y = result_it[i]->value;
+					}
+					else if (result_it[i]->value > max_y)
+					{
+						max_y = result_it[i]->value;
+					}
 				}
 				else
 				{
@@ -248,6 +263,15 @@ void meterd_output(sel_counter* sel_counters, const char* dbname, const char* ou
 			if (additive)
 			{
 				fprintf(out, ",%0.3Lf", added);
+
+				if (additive < min_y)
+				{
+					min_y = additive;
+				}
+				else if (additive > max_y)
+				{
+					max_y = additive;
+				}
 			}
 
 			fprintf(out, "\n");
@@ -303,6 +327,15 @@ void meterd_output(sel_counter* sel_counters, const char* dbname, const char* ou
 				if (!additive)
 				{
 					fprintf(out, "  %3.3Lf", result_it[i]->value);
+
+					if (result_it[i]->value < min_y)
+					{
+						min_y = result_it[i]->value;
+					}
+					else if (result_it[i]->value > max_y)
+					{
+						max_y = result_it[i]->value;
+					}
 				}
 				else
 				{
@@ -313,6 +346,15 @@ void meterd_output(sel_counter* sel_counters, const char* dbname, const char* ou
 			if (additive)
 			{
 				fprintf(out, "  %3.3Lf", added);
+
+				if (additive < min_y)
+				{
+					min_y = additive;
+				}
+				else if (additive > max_y)
+				{
+					max_y = additive;
+				}
 			}
 
 			fprintf(out, "\n");
@@ -356,6 +398,22 @@ void meterd_output(sel_counter* sel_counters, const char* dbname, const char* ou
 	{
 		fclose(out);
 	}
+
+	/* Write min/max values to file if requested */
+	if (range_file != NULL)
+	{
+		FILE* range_fd = fopen(range_file, "w");
+
+		if (range_fd == NULL)
+		{
+			ERROR_MSG("Failed to open %s for writing", range_file);
+
+			return;
+		}
+
+		fprintf(range_fd, "set yrange [%3.3Lf:%3.3Lf]\n", min_y - y_offset, max_y + y_offset);
+		fclose(range_fd);
+	}
 }
 
 int main(int argc, char* argv[])
@@ -372,9 +430,12 @@ int main(int argc, char* argv[])
 	char*		dbname		= NULL;
 	char*		outfile		= NULL;
 	int		interval	= 0;
+	int		give_y_range	= 0;
+	long double	y_offset	= 0.0f;
+	char*		range_file	= NULL;
 	int 		c 		= 0;
 	
-	while ((c = getopt(argc, argv, "c:qapCs:S:d:o:i:hv")) != -1)
+	while ((c = getopt(argc, argv, "c:qapCs:S:d:o:i:r:x:y:hv")) != -1)
 	{
 		switch(c)
 		{
@@ -413,6 +474,13 @@ int main(int argc, char* argv[])
 			break;
 		case 'i':
 			interval = atoi(optarg);
+			break;
+		case 'y':
+			give_y_range = 1;
+			y_offset = strtold(optarg, NULL);
+			break;
+		case 'r':
+			range_file = strdup(optarg);
 			break;
 		case 'h':
 			usage();
@@ -484,11 +552,18 @@ int main(int argc, char* argv[])
 		return MRV_PARAM_INVALID;
 	}
 
+	if (give_y_range && (range_file == NULL))
+	{
+		ERROR_MSG("Must specify -r in combination with -y");
+
+		return MRV_PARAM_INVALID;
+	}
+
 	INFO_MSG("Smart Meter Monitoring Daemon (meterd) version %s", VERSION);
 	INFO_MSG("Processing data output request");
 
 	/* Generate the requested output */
-	meterd_output(sel_counters, dbname, outfile, format_gnuplot ? FORMAT_GNUPLOT : FORMAT_CSV, additive, interval);
+	meterd_output(sel_counters, dbname, outfile, format_gnuplot ? FORMAT_GNUPLOT : FORMAT_CSV, additive, interval, range_file, give_y_range, y_offset);
 
 	/* Uninitialise logging */
 	if (meterd_uninit_log() != MRV_OK)
@@ -499,6 +574,7 @@ int main(int argc, char* argv[])
 	free(config_path);
 	free(dbname);
 	free(outfile);
+	free(range_file);
 
 	LL_FOREACH_SAFE(sel_counters, sel_ctr_it, sel_ctr_tmp)
 	{
