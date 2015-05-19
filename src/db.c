@@ -269,6 +269,8 @@ static int meterd_db_get_config_cb(void* data, int argc, char* argv[], char* col
 	return 0;
 }
 
+static int	nresults	= 0;
+
 static int meterd_db_get_results_cb(void* data, int argc, char* argv[], char* colname[])
 {
 	assert(data != NULL);
@@ -289,11 +291,13 @@ static int meterd_db_get_results_cb(void* data, int argc, char* argv[], char* co
 
 	LL_APPEND(*results, new_result);
 
+	nresults++;
+
 	return 0;
 }
 
 /* Retrieve results from the database */
-meterd_rv meterd_db_get_results(void* db_handle, const char* id, long double invert, db_res_ctr** results, int select_from)
+meterd_rv meterd_db_get_results(void* db_handle, const char* id, long double invert, db_res_ctr** results, int select_from, int skip_time)
 {
 	assert(id != NULL);
 	assert(db_handle != NULL);
@@ -322,20 +326,50 @@ meterd_rv meterd_db_get_results(void* db_handle, const char* id, long double inv
 
 	DEBUG_MSG("Data for ID %s is in table %s", id, table_name);
 
-	/* Now, select the data for the specified interval */
-	sql = "SELECT * FROM %s WHERE timestamp >= %d;";
-
-	snprintf(sql_buf, 4096, sql, table_name, select_from);
-
-	if (sqlite3_exec((sqlite3*) db_handle, sql_buf, meterd_db_get_results_cb, (void*) results, &errmsg) != SQLITE_OK)
+	if (skip_time == 0)
 	{
-		ERROR_MSG("Failed to retrieve results from table %s (%s)", table_name, errmsg);
+		/* Now, select the data for the specified interval */
+		sql = "SELECT * FROM %s WHERE timestamp >= %d;";
+	
+		snprintf(sql_buf, 4096, sql, table_name, select_from);
+	
+		if (sqlite3_exec((sqlite3*) db_handle, sql_buf, meterd_db_get_results_cb, (void*) results, &errmsg) != SQLITE_OK)
+		{
+			ERROR_MSG("Failed to retrieve results from table %s (%s)", table_name, errmsg);
+	
+			sqlite3_free(errmsg);
+	
+			free(table_name);
+	
+			return MRV_DB_ERROR;
+		}
+	}
+	else
+	{
+		int	timestamp	= select_from;
 
-		sqlite3_free(errmsg);
+		sql = "SELECT * FROM %s WHERE timestamp >= %d LIMIT 1;";
 
-		free(table_name);
+		do
+		{
+			snprintf(sql_buf, 4096, sql, table_name, timestamp);
 
-		return MRV_DB_ERROR;
+			nresults = 0;
+
+			if (sqlite3_exec((sqlite3*) db_handle, sql_buf, meterd_db_get_results_cb, (void*) results, &errmsg) != SQLITE_OK)
+			{
+				ERROR_MSG("Failed to retrieve results from table %s (%s)", table_name, errmsg);
+
+				sqlite3_free(errmsg);
+
+				free(table_name);
+
+				return MRV_DB_ERROR;
+			}
+
+			timestamp += skip_time;
+		}
+		while (nresults > 0);
 	}
 
 	/* Apply inversion */

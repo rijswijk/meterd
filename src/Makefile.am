@@ -24,9 +24,9 @@ meterd_SOURCES =		meterd_main.c \
 				utlist.h \
 				uthash.h
 
-meterd_LDADD =			@LIBCONFIG_LIBS@ @SQLITE3_LDFLAGS@
+meterd_LDADD =			@LIBCONFIG_LIBS@ @SQLITE3_LDFLAGS@ @PTHREAD_LIBS@
 
-meterd_CFLAGS =			@LIBCONFIG_CFLAGS@ @SQLITE3_CFLAGS@
+meterd_CFLAGS =			@LIBCONFIG_CFLAGS@ @SQLITE3_CFLAGS@ @PTHREAD_CFLAGS@
 
 meterd_createdb_SOURCES =	meterd_createdb.c \
 				meterd_log.c \

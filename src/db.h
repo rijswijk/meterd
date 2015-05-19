@@ -59,7 +59,7 @@ meterd_rv meterd_db_open(const char* db_name, int read_only, void** db_handle);
 meterd_rv meterd_db_record(void* db_handle, const char* table_name, long double value, const char* unit, int timestamp);
 
 /* Retrieve results from the database */
-meterd_rv meterd_db_get_results(void* db_handle, const char* id, long double invert, db_res_ctr** results, int select_from);
+meterd_rv meterd_db_get_results(void* db_handle, const char* id, long double invert, db_res_ctr** results, int select_from, int skip_time);
 
 /* Close the specified database */
 void meterd_db_close(void* db_handle);

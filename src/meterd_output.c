@@ -85,13 +85,14 @@ void usage(void)
 	printf("\t-x            Output GNUPlot x-range statement based on timestamps\n");
 	printf("\t              (requires -r)\n");
 	printf("\t-r <file>     File to write GNUPlot range statements to\n");
+	printf("\t-j <seconds>  Skip <seconds> between each query results\n");
 	printf("\n");
 	printf("\t-h            Print this help message\n");
 	printf("\n");
 	printf("\t-v            Print the version number\n");
 }
 
-void meterd_output(sel_counter* sel_counters, const char* dbname, const char* outfile, const int format, const int additive, const int interval, const char* range_file, const int give_y_range, const long double y_offset, const int give_x_range)
+void meterd_output(sel_counter* sel_counters, const char* dbname, const char* outfile, const int format, const int additive, const int interval, const char* range_file, const int give_y_range, const long double y_offset, const int give_x_range, int skip_time)
 {
 	db_res_ctr**	results		= NULL;
 	db_res_ctr**	result_it	= NULL;
@@ -167,7 +168,7 @@ void meterd_output(sel_counter* sel_counters, const char* dbname, const char* ou
 
 	LL_FOREACH(sel_counters, ctr_it)
 	{
-		if (meterd_db_get_results(db_handle, ctr_it->id, ctr_it->invert, &results[i++], select_from) != MRV_OK)
+		if (meterd_db_get_results(db_handle, ctr_it->id, ctr_it->invert, &results[i++], select_from, skip_time) != MRV_OK)
 		{
 			ERROR_MSG("Failed to retrieve results for %s from database %s", ctr_it->id, dbname);
 
@@ -457,9 +458,10 @@ int main(int argc, char* argv[])
 	long double	y_offset	= 0.0f;
 	int		give_x_range	= 0;
 	char*		range_file	= NULL;
+	int		skip_time	= 0;
 	int 		c 		= 0;
 	
-	while ((c = getopt(argc, argv, "c:qapCs:S:d:o:i:r:xy:hv")) != -1)
+	while ((c = getopt(argc, argv, "c:qapCs:S:d:o:i:r:xy:j:hv")) != -1)
 	{
 		switch(c)
 		{
@@ -508,6 +510,9 @@ int main(int argc, char* argv[])
 			break;
 		case 'r':
 			range_file = strdup(optarg);
+			break;
+		case 'j':
+			skip_time = atoi(optarg);
 			break;
 		case 'h':
 			usage();
@@ -590,7 +595,7 @@ int main(int argc, char* argv[])
 	INFO_MSG("Processing data output request");
 
 	/* Generate the requested output */
-	meterd_output(sel_counters, dbname, outfile, format_gnuplot ? FORMAT_GNUPLOT : FORMAT_CSV, additive, interval, range_file, give_y_range, y_offset, give_x_range);
+	meterd_output(sel_counters, dbname, outfile, format_gnuplot ? FORMAT_GNUPLOT : FORMAT_CSV, additive, interval, range_file, give_y_range, y_offset, give_x_range, skip_time);
 
 	/* Uninitialise logging */
 	if (meterd_uninit_log() != MRV_OK)
