@@ -3,8 +3,8 @@ MAINTAINERCLEANFILES =		$(srcdir)/Makefile.in
 sbin_PROGRAMS = 		meterd
 
 bin_PROGRAMS =			meterd-createdb \
-				meterd-output 
-#				meterd-plot
+				meterd-output \
+				testp1-parse
 
 meterd_SOURCES =		meterd_main.c \
 				meterd_log.c \
@@ -53,3 +53,10 @@ meterd_output_SOURCES =		meterd_output.c \
 meterd_output_CFLAGS =		@LIBCONFIG_CFLAGS@ @SQLITE3_CFLAGS@
 
 meterd_output_LDADD =		@LIBCONFIG_LIBS@ @SQLITE3_LDFLAGS@
+
+testp1_parse_SOURCES =		testp1_parse.c \
+				p1_parser.c \
+				p1_parser.h
+
+testp1_parse_CFLAGS =		-DCMD_OUT
+
