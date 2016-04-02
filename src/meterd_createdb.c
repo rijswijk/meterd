@@ -386,15 +386,15 @@ int main(int argc, char* argv[])
 		INFO_MSG("Will overwrite existing databases");
 	}
 
-	/* Create raw databases */
-	meterd_createdb_raw("raw_db", force_overwrite);
-	meterd_createdb_raw("fivemin_avg", force_overwrite);
-	meterd_createdb_raw("hourly_avg", force_overwrite);
-
-	/* Create counters database */
-	meterd_createdb_counters(force_overwrite);
-
-	INFO_MSG("Finished database creation");
+	/* Create raw databases and counter databases */
+	if (meterd_createdb_raw("raw_db", force_overwrite) != MRV_OK
+			|| meterd_createdb_raw("fivemin_avg", force_overwrite) != MRV_OK
+			|| meterd_createdb_raw("hourly_avg", force_overwrite) != MRV_OK
+			|| meterd_createdb_counters(force_overwrite) != MRV_OK) {
+		ERROR_MSG("Errors occurred during database creation");
+	} else {
+		INFO_MSG("Finished database creation");
+	}
 
 	/* Uninitialise database handling */
 	meterd_db_finalize();
