@@ -26,6 +26,7 @@
  */
 
 #include "config.h"
+#include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -39,6 +40,16 @@
 #include "measure.h"
 #include "tasksched.h"
 
+/* Accepted command-line arguments (normal) */
+#define OPTSTRING "fc:p:hv"
+
+/* Accepted command-line arguments (long) */
+struct option long_opts[] = {
+	{ "help",    no_argument, NULL, 'h' },
+	{ "version", no_argument, NULL, 'v' },
+	{ 0, 0, 0, 0 }
+};
+
 void version(void)
 {
 	printf("Smart Meter Monitoring Daemon (meterd) version %s\n", VERSION);
@@ -50,21 +61,18 @@ void version(void)
 
 void usage(void)
 {
-	printf("Smart Meter Monitoring Daemon (meterd) version %s\n\n", VERSION);
+	printf("Smart Meter Monitoring Daemon (meterd) version %s\n", VERSION);
+	printf("\n");
 	printf("Usage:\n");
-	printf("\tmeterd [-f] [-c <config>] [-p <pidfile>]\n");
-	printf("\tmeterd -h\n");
-	printf("\tmeterd -v\n");
+	printf("\tmeterd [-c <config>] [-f] [-p <pidfile>]\n");
 	printf("\n");
+	printf("Options:\n");
+	printf("\t-c <config>   Use <config> as configuration file (default: %s)\n", DEFAULT_METERD_CONF);
 	printf("\t-f            Run in the foreground rather than forking as a daemon\n");
-	printf("\t-c <config>   Use <config> as configuration file\n");
-	printf("\t              Defaults to %s\n", DEFAULT_METERD_CONF);
-	printf("\t-p <pidfile>  Specify the PID file to write the daemon process ID to\n");
-	printf("\t              Defaults to %s\n", DEFAULT_METERD_PIDFILE);
-	printf("\n");
+	printf("\t-p <pidfile>  Specify the PID file to write the daemon process ID to (default: %s)\n", DEFAULT_METERD_PIDFILE);
 	printf("\t-h            Print this help message\n");
-	printf("\n");
 	printf("\t-v            Print the version number\n");
+	printf("\n");
 }
 
 void write_pid(const char* pid_path, pid_t pid)
@@ -152,7 +160,7 @@ int main(int argc, char* argv[])
 	int daemon_set = 0;
 	pid_t pid = 0;
 	
-	while ((c = getopt(argc, argv, "fc:p:hv")) != -1)
+	while ((c = getopt_long(argc, argv, OPTSTRING, long_opts, NULL)) != -1)
 	{
 		switch(c)
 		{
@@ -187,6 +195,9 @@ int main(int argc, char* argv[])
 		case 'v':
 			version();
 			return 0;
+		default:
+			usage();
+			return 1;
 		}
 	}
 

@@ -26,6 +26,7 @@
  */
 
 #include "config.h"
+#include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -39,6 +40,16 @@
 #include "db.h"
 #include "utlist.h"
 
+/* Accepted command-line arguments (normal) */
+#define OPTSTRING "c:fhv"
+
+/* Accepted command-line arguments (long) */
+struct option long_opts[] = {
+	{ "help",    no_argument, NULL, 'h' },
+	{ "version", no_argument, NULL, 'v' },
+	{ 0, 0, 0, 0 }
+};
+
 void version(void)
 {
 	printf("Smart Meter Monitoring Daemon (meterd) version %s\n", VERSION);
@@ -51,20 +62,18 @@ void version(void)
 
 void usage(void)
 {
-	printf("Smart Meter Monitoring Daemon (meterd) version %s\n\n", VERSION);
+	printf("Smart Meter Monitoring Daemon (meterd) version %s\n", VERSION);
 	printf("Database initialisation utility\n");
+	printf("\n");
 	printf("Usage:\n");
 	printf("\tmeterd-createdb [-c <config>] [-f]\n");
-	printf("\tmeterd-createdb -h\n");
-	printf("\tmeterd-createdb -v\n");
 	printf("\n");
-	printf("\t-c <config>   Use <config> as configuration file\n");
-	printf("\t              Defaults to %s\n", DEFAULT_METERD_CONF);
+	printf("Options:\n");
+	printf("\t-c <config>   Use <config> as configuration file (default: %s)\n", DEFAULT_METERD_CONF);
 	printf("\t-f            Force overwriting of existing databases\n");
-	printf("\n");
 	printf("\t-h            Print this help message\n");
-	printf("\n");
 	printf("\t-v            Print the version number\n");
+	printf("\n");
 }
 
 meterd_rv meterd_createdb_raw(const char* type, int force_overwrite)
@@ -239,7 +248,7 @@ meterd_rv meterd_createdb_counters(int force_overwrite)
 
 	/* Check if there is a gas counter configured */
 	if (((rv = meterd_conf_get_string("database.gascounter", "id", &gas_id, NULL)) != MRV_OK) ||
-	    ((rv = meterd_conf_get_string("database.gascounter", "description", &gas_description, NULL)) != MRV_OK))
+		((rv = meterd_conf_get_string("database.gascounter", "description", &gas_description, NULL)) != MRV_OK))
 	{
 		ERROR_MSG("Failed to retrieve gas counter configuration");
 
@@ -317,7 +326,7 @@ int main(int argc, char* argv[])
 	int	force_overwrite	= 0;
 	int 	c 		= 0;
 	
-	while ((c = getopt(argc, argv, "c:fhv")) != -1)
+	while ((c = getopt_long(argc, argv, OPTSTRING, long_opts, NULL)) != -1)
 	{
 		switch(c)
 		{
@@ -340,6 +349,9 @@ int main(int argc, char* argv[])
 		case 'v':
 			version();
 			return 0;
+		default:
+			usage();
+			return 1;
 		}
 	}
 

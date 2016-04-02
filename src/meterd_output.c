@@ -26,6 +26,7 @@
  */
 
 #include "config.h"
+#include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -43,6 +44,16 @@
 #define FORMAT_GNUPLOT		1
 #define FORMAT_CSV		2
 
+/* Accepted command-line arguments (normal) */
+#define OPTSTRING "c:qapCs:S:d:o:i:r:xy:j:hv"
+
+/* Accepted command-line arguments (long) */
+struct option long_opts[] = {
+	{ "help",    no_argument, NULL, 'h' },
+	{ "version", no_argument, NULL, 'v' },
+	{ 0, 0, 0, 0 }
+};
+
 void version(void)
 {
 	printf("Smart Meter Monitoring Daemon (meterd) version %s\n", VERSION);
@@ -55,29 +66,25 @@ void version(void)
 
 void usage(void)
 {
-	printf("Smart Meter Monitoring Daemon (meterd) version %s\n\n", VERSION);
+	printf("Smart Meter Monitoring Daemon (meterd) version %s\n", VERSION);
 	printf("Data series output tool\n");
+	printf("\n");
 	printf("Usage:\n");
 	printf("\tmeterd-output [-c <config>] [-q] [-a] [-p] [-C] [-s <id>] [-S <id>]\n");
 	printf("\t              -d <database> [-o <file>] -i <interval> [-y <offset]\n");
 	printf("\t              [-x] [-r <file>]\n");
-	printf("\tmeterd-output -h\n");
-	printf("\tmeterd-output -v\n");
 	printf("\n");
-	printf("\t-c <config>   Use <config> as configuration file\n");
-	printf("\t              Defaults to %s\n", DEFAULT_METERD_CONF);
-	printf("\t-q            Be quiet; only logs errors\n");
-	printf("\t              (off by default)\n");
-	printf("\t-a            Add data of selected counters and merge to a single column\n");
-	printf("\t              (off by default)\n");
+	printf("Options:\n");
+	printf("\t-c <config>   Use <config> as configuration file (default: %s)\n", DEFAULT_METERD_CONF);
+	printf("\t-q            Be quiet; only logs errors (default: off)\n");
+	printf("\t-a            Add data of selected counters and merge to a single column (default: off)\n");
 	printf("\t-p            Output in GNUPlot compatible format\n");
 	printf("\t-C            Output as CSV file\n");
 	printf("\t-s <id>       Select counter with <id> (can occur multiple times)\n");
 	printf("\t-S <id>       Select counter with <id> and invert (negate) its value\n");
 	printf("\t              (can occur multiple times)\n");
 	printf("\t-d <database> Read data from <database>\n");
-	printf("\t-o <file>     Write output to <file>\n");
-	printf("\t              (defaults to stdout)\n");
+	printf("\t-o <file>     Write output to <file> (default: stdout)\n");
 	printf("\t-i <interval> Interval in seconds to output data for (relative to the\n");
 	printf("\t              current time)\n");
 	printf("\t-y <offset>   Output GNUPlot y-range statement based on counter values\n");
@@ -86,10 +93,9 @@ void usage(void)
 	printf("\t              (requires -r)\n");
 	printf("\t-r <file>     File to write GNUPlot range statements to\n");
 	printf("\t-j <seconds>  Skip <seconds> between each query results\n");
-	printf("\n");
 	printf("\t-h            Print this help message\n");
-	printf("\n");
 	printf("\t-v            Print the version number\n");
+	printf("\n");
 }
 
 void meterd_output(sel_counter* sel_counters, const char* dbname, const char* outfile, const int format, const int additive, const int interval, const char* range_file, const int give_y_range, const long double y_offset, const int give_x_range, int skip_time)
@@ -461,7 +467,7 @@ int main(int argc, char* argv[])
 	int		skip_time	= 0;
 	int 		c 		= 0;
 	
-	while ((c = getopt(argc, argv, "c:qapCs:S:d:o:i:r:xy:j:hv")) != -1)
+	while ((c = getopt_long(argc, argv, OPTSTRING, long_opts, NULL)) != -1)
 	{
 		switch(c)
 		{
@@ -520,6 +526,9 @@ int main(int argc, char* argv[])
 		case 'v':
 			version();
 			return 0;
+		default:
+			usage();
+			return 1;
 		}
 	}
 
