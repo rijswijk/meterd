@@ -24,13 +24,14 @@ meters; for more information see below under 'Testing' and 'Known Working'.
 
 To build meterd you will need to have the following software installed:
 
- - libconfig (>= 1.3.2), [ C/C++ Configuration File Library ](http://www.hyperrealm.com/libconfig/)
+ - libconfig (>= 1.3.2), [ C/C++ Configuration File Library ](http://www.hyperrealm.com/libconfig/) (on Raspbian you need to install `libconfig-dev`)
  - SQLite3 (>= 3.7.0), [ A self-contained in-process database ](http://www.sqlite.org) (on Raspbian you need to install `libsqlite3-dev`)
  - autoconf [ Automatic configure script builder ](http://www.gnu.org/software/autoconf/autoconf.html)
  - libtool [ Generic library support ](http://www.gnu.org/software/libtool/)
 
 Extra:
- - gnuplot for creating grapsh
+ - gnuplot for creating graphs
+
 ###3. Building
 
 To build meterd, first clone the meterd repository:
@@ -56,9 +57,11 @@ If you are root (administrative user), run:
 # make install
 ```
 
-Copy `sample-scripts/meterd.conf` to `/etc/meterd.conf` and adapt to your situation.
-Run `meterd-createdb -c /etc/meterd.conf`
-Copy `sample-scripts/plot-*.sh` to `/usr/local/bin/`
+Final steps:
+
+ - Copy `sample-scripts/meterd.conf` to `/etc/meterd.conf` and adapt to your situation. You may need root permissions for this.
+ - Run `meterd-createdb -c /etc/meterd.conf`
+ - Copy `sample-scripts/plot-*.sh` to `/usr/local/bin/`
 
 ###5. Configuration
 
