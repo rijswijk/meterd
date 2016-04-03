@@ -175,7 +175,7 @@ meterd_rv meterd_comm_init(void)
 
 	if (comm_fd < 0)
 	{
-		ERROR_MSG("Failed to open serial terminal %s", tty);
+		ERROR_MSG("Failed to open serial terminal %s: %s", tty, strerror(errno));
 
 		free(tty);
 
