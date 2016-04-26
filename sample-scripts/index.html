@@ -1,116 +1,170 @@
+<!DOCTYPE html>
 <html>
-<head>
-<link rel="stylesheet" type="text/css" href="tabs.css">
-<title>Smart Meter Monitoring Daemon</title>
+	<head>
+		<link rel="stylesheet" type="text/css" href="tabs.css" />
+		<title>Smart Meter Monitoring Daemon</title>
+		<meta charset="UTF-8">
+		<meta http-equiv="refresh" content="60">
+		<style>
+			.plot {
+				margin: auto;
+			}
+		</style>
+		<script type="text/javascript">
+			var COOKIE_NAME = "meterd";
 
-<script type="text/javascript">
-var tabLinks = new Array();
-    var contentDivs = new Array();
+			var tabLinks = new Array();
+			var contentDivs = new Array();
+			var firstTabID = "";
 
-    function init() {
+			function init() {
+				/* Grab the tab links and content divs from the page */
+				var tabListItems = document.getElementById('tabs').childNodes;
+				for ( var i = 0; i < tabListItems.length; i++ ) {
+					if ( tabListItems[i].nodeName == "LI" ) {
+						var tabLink = getFirstChildWithTagName( tabListItems[i], 'A' );
+						var id = getHash( tabLink.getAttribute('href') );
+						tabLinks[id] = tabLink;
+						contentDivs[id] = document.getElementById( id );
+					}
+				}
 
-      // Grab the tab links and content divs from the page
-      var tabListItems = document.getElementById('tabs').childNodes;
-      for ( var i = 0; i < tabListItems.length; i++ ) {
-        if ( tabListItems[i].nodeName == "LI" ) {
-          var tabLink = getFirstChildWithTagName( tabListItems[i], 'A' );
-          var id = getHash( tabLink.getAttribute('href') );
-          tabLinks[id] = tabLink;
-          contentDivs[id] = document.getElementById( id );
-        }
-      }
+				/* Assign onclick events to the tab links */
+				var i = 0;
+				for ( var id in tabLinks ) {
+					tabLinks[id].onclick = showTab;
+					tabLinks[id].onfocus = function() { this.blur() };
 
-      // Assign onclick events to the tab links, and
-      // highlight the first tab
-      var i = 0;
+					if ( i == 0 ) {
+						firstTabID = id;
+					}
 
-      for ( var id in tabLinks ) {
-        tabLinks[id].onclick = showTab;
-        tabLinks[id].onfocus = function() { this.blur() };
-        if ( i == 0 ) tabLinks[id].className = 'selected';
-        i++;
-      }
+					i++;
+				}
 
-      // Hide all content divs except the first
-      var i = 0;
+				/* If cookie exists, select tab based on cookie. Otherwise,
+				 * select first tab.
+				 */
+				var cookie = getCookie(COOKIE_NAME);
+				if ( cookie == "" ) { /* Cookie does not exist */
+					console.log("Cookie not found");
+					/* Highlight first tab */
+					tabLinks[firstTabID].className = 'selected';
+				} else { /* Cookie exists */
+					console.log("Cookie found");
+					/* Check whether cookie value is valid */
+					if ( cookie in tabLinks ) {
+						console.log("Cookie valid; page: " + cookie);
+						tabLinks[cookie].className = 'selected';
+					} else {
+						/* Select first tab otherwise */
+						console.log("Cookie not valid");
+						tabLinks[firstTabID].className = 'selected';
+					}
+				}
 
-      for ( var id in contentDivs ) {
-        if ( i != 0 ) contentDivs[id].className = 'tabContent hide';
-        i++;
-      }
-    }
+				/* Hide all content divs except for the selected one */
+				for ( var id in contentDivs ) {
+					if ( tabLinks[id].className != 'selected' ) {
+						contentDivs[id].className = 'tabContent hide';
+					}
 
-    function showTab() {
-      var selectedId = getHash( this.getAttribute('href') );
+					i++;
+				}
+			}
 
-      // Highlight the selected tab, and dim all others.
-      // Also show the selected content div, and hide all others.
-      for ( var id in contentDivs ) {
-        if ( id == selectedId ) {
-          tabLinks[id].className = 'selected';
-          contentDivs[id].className = 'tabContent';
-        } else {
-          tabLinks[id].className = '';
-          contentDivs[id].className = 'tabContent hide';
-        }
-      }
+			function showTab() {
+				var selectedId = getHash( this.getAttribute('href') );
 
-      // Stop the browser following the link
-      return false;
-    }
+				/* Highlight the selected tab, and dim all others.
+				 * Also show the selected content div, and hide all others.
+				 */
+				for ( var id in contentDivs ) {
+					if ( id == selectedId ) {
+						tabLinks[id].className = 'selected';
+						contentDivs[id].className = 'tabContent';
+					} else {
+						tabLinks[id].className = '';
+						contentDivs[id].className = 'tabContent hide';
+					}
+				}
 
-    function getFirstChildWithTagName( element, tagName ) {
-      for ( var i = 0; i < element.childNodes.length; i++ ) {
-        if ( element.childNodes[i].nodeName == tagName ) return element.childNodes[i];
-      }
-    }
+				/* Remember selected tab using cookie */
+				console.log("Storing cookie");
+				setCookie(COOKIE_NAME, selectedId, 1);
 
-    function getHash( url ) {
-      var hashPos = url.lastIndexOf ( '#' );
-      return url.substring( hashPos + 1 );
-    }
-</script>
+				/* Stop the browser following the link */
+				return false;
+			}
 
-</head>
-<body onload="init()">
+			function getFirstChildWithTagName( element, tagName ) {
+				for ( var i = 0; i < element.childNodes.length; i++ ) {
+					if ( element.childNodes[i].nodeName == tagName ) return element.childNodes[i];
+				}
+			}
 
-<ul id="tabs">
-	<li><a href="#raw-hour">Raw (hour)</a></li>
-	<li><a href="#raw-day">Raw (day)</a></li>
-	<li><a href="#raw-week">Raw (week)</a></li>
-	<li><a href="#consumed-day">Consumed/produced (day)</a></li>
-	<li><a href="#consumed-week">Consumed/produced (week)</a></li>
-	<li><a href="#gas-day">Gas (day)</a></li>
-	<li><a href="#gas-week">Gas (week)</a></li>
-</ul>
+			function getHash( url ) {
+				var hashPos = url.lastIndexOf ( '#' );
+				return url.substring( hashPos + 1 );
+			}
 
-<div class="tabContent" id="raw-hour">
-	<img src="img/raw-hour.svg" align=middle/>
-</div>
+			/* Cookie handling */
+			function getCookie( name ) {
+				var name = name + "=";
+				var ca = document.cookie.split(';');
+				for ( var i = 0; i < ca.length; i++ ) {
+					var c = ca[i];
+					while ( c.charAt(0) == ' ' ) c = c.substring(1);
+					if ( c.indexOf(name) == 0 ) return c.substring(name.length, c.length);
+				}
+				return "";
+			}
 
-<div class="tabContent" id="raw-day">
-	<img src="img/raw-day.svg" align=middle/>
-</div>
+			function setCookie( name, value, expDays ) {
+				var d = new Date();
+				d.setTime(d.getTime() + (expDays * 24 * 60 * 60 * 1000));
+				var expires = "expires=" + d.toUTCString();
+				document.cookie = name + "=" + value + "; " + expires;
+			}
+		</script>
+	</head>
+	<body onload="init()">
+		<ul id="tabs">
+			<li><a href="#raw-hour">Raw (hour)</a></li>
+			<li><a href="#raw-day">Raw (day)</a></li>
+			<li><a href="#raw-week">Raw (week)</a></li>
+			<li><a href="#consumed-day">Consumed/produced (day)</a></li>
+			<li><a href="#consumed-week">Consumed/produced (week)</a></li>
+			<li><a href="#gas-day">Gas (day)</a></li>
+			<li><a href="#gas-week">Gas (week)</a></li>
+		</ul>
 
-<div class="tabContent" id="raw-week">
-	<img src="img/raw-week.svg" align=middle/>
-</div>
+		<div class="tabContent plot" id="raw-hour">
+			<img src="img/raw-hour.svg" alt="" />
+		</div>
 
-<div class="tabContent" id="consumed-day">
-	<img src="img/consumed-day.svg" align=middle/>
-</div>
+		<div class="tabContent plot" id="raw-day">
+			<img src="img/raw-day.svg" alt="" />
+		</div>
 
-<div class="tabContent" id="consumed-week">
-	<img src="img/consumed-week.svg" align=middle/>
-</div>
+		<div class="tabContent plot" id="raw-week">
+			<img src="img/raw-week.svg" alt="" />
+		</div>
 
-<div class="tabContent" id="gas-day">
-	<img src="img/gas-day.svg" align=middle/>
-</div>
+		<div class="tabContent plot" id="consumed-day">
+			<img src="img/consumed-day.svg" alt="" />
+		</div>
 
-<div class="tabContent" id="gas-week">
-	<img src="img/gas-week.svg" align=middle/>
-</div>
+		<div class="tabContent plot" id="consumed-week">
+			<img src="img/consumed-week.svg" alt="" />
+		</div>
 
-</body>
+		<div class="tabContent plot" id="gas-day">
+			<img src="img/gas-day.svg" alt="" />
+		</div>
+
+		<div class="tabContent plot" id="gas-week">
+			<img src="img/gas-week.svg" alt="" />
+		</div>
+	</body>
 </html>
