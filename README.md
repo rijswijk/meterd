@@ -1,12 +1,11 @@
+## Smart Meter Monitoring Daemon (meterd)
 
-##Smart Meter Monitoring Daemon (meterd)
-
-Copyright (c) 2014 Roland van Rijswijk-Deij
+Copyright (c) 2014-2018 Roland van Rijswijk-Deij
 
 All rights reserved. This software is distributed under a BSD-style
 license. For more information, see LICENSE.
 
-###1. Introduction
+### Introduction
 
 The Smart Meter Monitoring Daemon - or 'meterd' for short - allows you to
 monitoring your current electricity consumption, to graph it using a variety
@@ -20,7 +19,7 @@ that meets the Dutch Smart Meter Requirements (DSMR) 3.0 or up. Note that at
 present the software has only been tested with a limited number of smart
 meters; for more information see below under 'Testing' and 'Known Working'.
 
-###2. Prerequisites
+### Prerequisites
 
 To build meterd you will need to have the following software installed:
 
@@ -32,7 +31,7 @@ To build meterd you will need to have the following software installed:
 Extra:
  - gnuplot for creating graphs
 
-###3. Building
+### Building
 
 To build meterd, first clone the meterd repository:
 ```
@@ -46,7 +45,7 @@ $ ./configure
 $ make
 ```
 
-###4. Installing 
+### Installing 
 
 To install meterd as a regular user, run:
 ```
@@ -63,19 +62,11 @@ Final steps:
  - Run `meterd-createdb -c /etc/meterd.conf`
  - Copy `sample-scripts/plot-*.sh` to `/usr/local/bin/`
 
-###5. Configuration
+### Configuration
 
-TBD
+See under Installing above.
 
-###6. Testing
-
-TBD
-
-###7. Known Working
-
-TBD
-
-###8. Contact
+### Contact
 
 Questions/remarks/suggestions/praise on this tool can be sent to:
 
