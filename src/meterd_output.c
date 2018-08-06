@@ -155,13 +155,9 @@ void meterd_output(sel_counter* sel_counters, const char* dbname, const char* ou
 	/* Allocate space for results from the database */
 	LL_COUNT(sel_counters, ctr_it, ctr_count);
 
-	results 	= (db_res_ctr**) malloc(ctr_count * sizeof(db_res_ctr*));
-	result_it	= (db_res_ctr**) malloc(ctr_count * sizeof(db_res_ctr*));
-	result_tmp	= (db_res_ctr**) malloc(ctr_count * sizeof(db_res_ctr*));
-
-	memset(results, 0, ctr_count * sizeof(db_res_ctr*));
-	memset(result_it, 0, ctr_count * sizeof(db_res_ctr*));
-	memset(result_tmp, 0, ctr_count * sizeof(db_res_ctr*));
+	results 	= (db_res_ctr**) calloc(ctr_count, sizeof(db_res_ctr*));
+	result_it	= (db_res_ctr**) calloc(ctr_count, sizeof(db_res_ctr*));
+	result_tmp	= (db_res_ctr**) calloc(ctr_count, sizeof(db_res_ctr*));
 
 	/* Retrieve results from the database */
 	i = 0;
