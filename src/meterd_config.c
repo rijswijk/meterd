@@ -434,9 +434,7 @@ meterd_rv meterd_conf_get_scheduled_tasks(scheduled_task** tasks)
 				continue;
 			}
 
-			new_task = (scheduled_task*) malloc(sizeof(scheduled_task));
-
-			memset(new_task, 0, sizeof(scheduled_task));
+			new_task = (scheduled_task*) calloc(1, sizeof(scheduled_task));
 
 			for (j = 0; j < task_elem_count; j++)
 			{
