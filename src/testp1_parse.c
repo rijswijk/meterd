@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Roland van Rijswijk-Deij
+ * Copyright (c) 2015-2019 Roland van Rijswijk-Deij
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
 	}
 
 	/* Parse the test telegram */
-	if (meterd_parse_p1_telegram(telegram, NULL, &counters) != MRV_OK)
+	if (meterd_parse_p1_telegram(telegram, "24.3.0", &counters) != MRV_OK)
 	{
 		fprintf(stderr, "Parsing of P1 telegram returned and error\n");
 	}

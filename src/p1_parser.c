@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015 Roland van Rijswijk-Deij
+ * Copyright (c) 2014-2019 Roland van Rijswijk-Deij
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,10 +40,10 @@
 #ifndef CMD_OUT
 #include "meterd_log.h"
 #else
-#define DEBUG_MSG(...) fprintf(stderr, __VA_ARGS__)
-#define ERROR_MSG(...) fprintf(stderr, __VA_ARGS__)
-#define WARNING_MSG(...) fprintf(stderr, __VA_ARGS__)
-#define INFO_MSG(...) fprintf(stderr, __VA_ARGS__)
+#define DEBUG_MSG(...) fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n")
+#define ERROR_MSG(...) fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n")
+#define WARNING_MSG(...) fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n")
+#define INFO_MSG(...) fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n")
 #endif
 #include "meterd_error.h"
 #include "p1_parser.h"
@@ -150,6 +150,10 @@ meterd_rv meterd_parse_p1_telegram(telegram_ll* telegram, const char* gas_id, sm
 					LL_APPEND((*counters), new_counter);
 				}
 			}
+			else
+			{
+				ERROR_MSG("Gas meter parse error");
+			}
 		}
 		else if ((rv = regexec(&re_extended_c, telegram_it->t_line, 4, extended_m, 0)) == 0)
 		{
@@ -158,6 +162,8 @@ meterd_rv meterd_parse_p1_telegram(telegram_ll* telegram, const char* gas_id, sm
 			smart_counter*	new_counter	= NULL;
 			char*		new_id		= (char*) malloc((id_len + 1) * sizeof(char));
 			char*		new_val		= (char*) malloc((val_len+1) * sizeof(char));
+
+			DEBUG_MSG("Parsing extended value '%s'", telegram_it->t_line);
 
 			if ((new_id == NULL) || (new_val == NULL))
 			{
@@ -177,56 +183,70 @@ meterd_rv meterd_parse_p1_telegram(telegram_ll* telegram, const char* gas_id, sm
 			memset(new_id, 0, id_len + 1);
 			strncpy(new_id, &telegram_it->t_line[extended_m[1].rm_so], id_len);
 
-			/* And get the value */
-			memset(new_val, 0, val_len + 1);
-			strncpy(new_val, &telegram_it->t_line[extended_m[3].rm_so], val_len);
+			DEBUG_MSG("Processing ID %s", new_id);
 
-			if ((rv = regexec(&re_counterval_c, new_val, 3, counterval_m, 0)) == 0)
+			if ((gas_id != NULL) && (strlen(gas_id) == id_len) && (strcmp(gas_id, new_id) == 0))
 			{
-				size_t	ctr_len		= counterval_m[1].rm_eo - counterval_m[1].rm_so;
-				size_t	unit_len	= counterval_m[2].rm_eo - counterval_m[2].rm_so;
-				char	ctr_buf[256]	= { 0 };
-				char	unit_buf[256]	= { 0 };
+				/* This is a gas meter counter, the actual value is on the next line */
+				next_is_gas = 1;
 
-				if ((ctr_len >= 256) || (unit_len >= 256))
-				{
-					ERROR_MSG("Invalid counter ID (%zd bytes) or unit (%zd bytes) length", ctr_len, unit_len);
-				}
-				else
-				{
-					/* Copy counter value and unit information */
-					strncpy(ctr_buf, &new_val[counterval_m[1].rm_so], ctr_len);
-					strncpy(unit_buf, &new_val[counterval_m[2].rm_so], unit_len);
+				DEBUG_MSG("Next is gas");
 
-					/* Add this new counter to the list */
-					new_counter = (smart_counter*) malloc(sizeof(smart_counter));
-	
-					if (new_counter == NULL)
-					{
-						/* Return memory error! */
-						regfree(&re_simple_c);
-						regfree(&re_extended_c);
-						regfree(&re_gas_c);
-						regfree(&re_counterval_c);
-						free(new_id);
-						free(new_val);
-	
-						return MRV_MEMORY;
-					}
-
-					new_counter->unit 	= strdup(unit_buf);
-					new_counter->id 	= new_id;
-					new_counter->value 	= strtold(&ctr_buf[0], NULL);
-
-					LL_APPEND((*counters), new_counter);
-				}
+				free(new_id);
 			}
 			else
 			{
-				free(new_id);
+				/* And get the value */
+				memset(new_val, 0, val_len + 1);
+				strncpy(new_val, &telegram_it->t_line[extended_m[3].rm_so], val_len);
+	
+				if ((rv = regexec(&re_counterval_c, new_val, 3, counterval_m, 0)) == 0)
+				{
+					size_t	ctr_len		= counterval_m[1].rm_eo - counterval_m[1].rm_so;
+					size_t	unit_len	= counterval_m[2].rm_eo - counterval_m[2].rm_so;
+					char	ctr_buf[256]	= { 0 };
+					char	unit_buf[256]	= { 0 };
+	
+					if ((ctr_len >= 256) || (unit_len >= 256))
+					{
+						ERROR_MSG("Invalid counter ID (%zd bytes) or unit (%zd bytes) length", ctr_len, unit_len);
+					}
+					else
+					{
+						/* Copy counter value and unit information */
+						strncpy(ctr_buf, &new_val[counterval_m[1].rm_so], ctr_len);
+						strncpy(unit_buf, &new_val[counterval_m[2].rm_so], unit_len);
+	
+						/* Add this new counter to the list */
+						new_counter = (smart_counter*) malloc(sizeof(smart_counter));
+		
+						if (new_counter == NULL)
+						{
+							/* Return memory error! */
+							regfree(&re_simple_c);
+							regfree(&re_extended_c);
+							regfree(&re_gas_c);
+							regfree(&re_counterval_c);
+							free(new_id);
+							free(new_val);
+		
+							return MRV_MEMORY;
+						}
+	
+						new_counter->unit 	= strdup(unit_buf);
+						new_counter->id 	= new_id;
+						new_counter->value 	= strtold(&ctr_buf[0], NULL);
+	
+						LL_APPEND((*counters), new_counter);
+					}
+				}
+				else
+				{
+					free(new_id);
+				}
+	
+				free(new_val);
 			}
-
-			free(new_val);
 		}
 		else if ((rv = regexec(&re_simple_c, telegram_it->t_line, 3, simple_m, 0)) == 0)
 		{
@@ -235,6 +255,8 @@ meterd_rv meterd_parse_p1_telegram(telegram_ll* telegram, const char* gas_id, sm
 			smart_counter*	new_counter	= NULL;
 			char*		new_id		= (char*) malloc((id_len + 1) * sizeof(char));
 			char*		new_val		= NULL;
+
+			DEBUG_MSG("Parsing simple value '%s'", telegram_it->t_line);
 
 			if (new_id == NULL)
 			{
@@ -251,10 +273,14 @@ meterd_rv meterd_parse_p1_telegram(telegram_ll* telegram, const char* gas_id, sm
 			memset(new_id, 0, id_len + 1);
 			strncpy(new_id, &telegram_it->t_line[simple_m[1].rm_so], id_len);
 
+			DEBUG_MSG("Processing ID %s", new_id);
+
 			if ((gas_id != NULL) && (strlen(gas_id) == id_len) && (strcmp(gas_id, new_id) == 0))
 			{
 				/* This is a gas meter counter, the actual value is on the next line */
 				next_is_gas = 1;
+
+				DEBUG_MSG("Next is gas");
 
 				free(new_id);
 			}
@@ -326,6 +352,10 @@ meterd_rv meterd_parse_p1_telegram(telegram_ll* telegram, const char* gas_id, sm
 
 				free(new_val);
 			}
+		}
+		else
+		{
+			DEBUG_MSG("No regular expression matches '%s'", telegram_it->t_line);
 		}
 	}
 

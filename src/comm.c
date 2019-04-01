@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Roland van Rijswijk-Deij
+ * Copyright (c) 2014-2019 Roland van Rijswijk-Deij
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -250,6 +250,8 @@ meterd_rv meterd_comm_recv_p1(telegram_ll** telegram)
 		if (strchr(buf, '\n') != NULL) *strchr(buf, '\n') = '\0';
 
 		new_tel_line->t_line = strdup(buf);
+
+		DEBUG_MSG("tel_dbg: '%s'", buf);
 
 		LL_APPEND(*telegram, new_tel_line);
 
