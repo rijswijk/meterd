@@ -144,8 +144,8 @@ void meterd_log(const int log_at_level, const char* file, const int line, const 
 
 	if (log_at_level == METERD_LOG_DEBUG)
 	{
-		static char debug_buf[8192];
-		vsnprintf(debug_buf, 8192, format, args);
+		static char debug_buf[4096];
+		vsnprintf(debug_buf, 4096, format, args);
 		snprintf(log_buf, 8192, "%s(%d): %s", file, line, debug_buf);
 	}
 	else

@@ -52,6 +52,8 @@ static counter_spec*	counters	= NULL;
 static int		run_measurement	= 1;
 static char*		gas_id		= NULL;
 static int		total_interval	= 0;
+static char*		telegram_file	= NULL;
+static char*		telegram_tmp	= NULL;
 
 /* Initialise measuring */
 meterd_rv meterd_measure_init(void)
@@ -63,6 +65,8 @@ meterd_rv meterd_measure_init(void)
 	meterd_rv	rv		= MRV_OK;
 	char*		id_cur_consume	= NULL;
 	char*		id_cur_produce	= NULL;
+	char**		raw_id		= NULL;
+	int		raw_id_count	= 0;
 	counter_spec*	new_counter	= NULL;
 	counter_spec*	counter_it	= NULL;
 
@@ -218,6 +222,38 @@ meterd_rv meterd_measure_init(void)
 		LL_APPEND(counters, new_counter);
 	}
 
+	if ((rv = meterd_conf_get_string_array("database", "other_raw_counters", &raw_id, &raw_id_count)) == MRV_OK)
+	{
+		int	i	= 0;
+
+		for (i = 0; i < raw_id_count; i++)
+		{
+			INFO_MSG("Registering values for other raw counter with ID=%s", raw_id[i]);
+
+			new_counter = (counter_spec*) malloc(sizeof(counter_spec));
+
+			new_counter->description	= strdup("Raw counter");
+			new_counter->id			= strdup(raw_id[i]);
+			new_counter->table_name		= meterd_conf_create_table_name(new_counter->id, COUNTER_TYPE_RAW);
+			new_counter->type		= COUNTER_TYPE_RAW;
+			new_counter->last_val		= 0.0f;
+			new_counter->last_ts		= 0;
+			new_counter->fivemin_cumul	= 0.0f;
+			new_counter->fivemin_ctr	= 0;
+			new_counter->fivemin_ts		= 0;
+			new_counter->hourly_cumul	= 0.0f;
+			new_counter->hourly_ctr		= 0;
+			new_counter->hourly_ts		= 0;
+			new_counter->raw_db_h		= raw_db_h;
+			new_counter->fivemin_db_h	= fivemin_db_h;
+			new_counter->hourly_db_h	= hourly_db_h;
+	
+			LL_APPEND(counters, new_counter);
+		}
+
+		meterd_conf_free_string_array(raw_id, raw_id_count);
+	}
+
 	/* Add consumption counters */
 	new_counter 	= NULL;
 	counter_it 	= NULL;
@@ -284,7 +320,41 @@ meterd_rv meterd_measure_init(void)
 		ERROR_MSG("Failed to get interval between recording total consumed/produced values from the configuration");
 	}
 
+	/* Get optional filename to store raw telegrams in */
+	if ((rv = meterd_conf_get_string("telegram", "file", &telegram_file, NULL)) == MRV_OK)
+	{
+		if (telegram_file != NULL)
+		{
+			INFO_MSG("Storing raw telegrams in %s", telegram_file);
+
+			telegram_tmp = (char*) malloc((strlen(telegram_file) + strlen(".tmp") + 1) * sizeof(char));
+
+			sprintf(telegram_tmp, "%s.tmp", telegram_file);
+		}
+	}
+
 	return MRV_OK;
+}
+
+/* Output the raw telegram to a file */
+static void dump_telegram(telegram_ll* p1)
+{
+	FILE*		dump_tmp	= NULL;
+	telegram_ll*	p1_it		= NULL;
+
+	if (!telegram_file || !telegram_tmp) return;
+
+	if ((dump_tmp = fopen(telegram_tmp, "w")) != NULL)
+	{
+		LL_FOREACH(p1, p1_it)
+		{
+			fprintf(dump_tmp, "%s\n", p1_it->t_line);
+		}
+
+		fclose(dump_tmp);
+
+		rename(telegram_tmp, telegram_file);
+	}
 }
 
 /* Run the main measurement loop until interrupted */
@@ -311,6 +381,9 @@ void meterd_measure_loop(void)
 
 			break;
 		}
+
+		/* Dump the telegram */
+		dump_telegram(p1);
 
 		/* Parse the telegram */
 		if (meterd_parse_p1_telegram(p1, gas_id, &p1_counters) == MRV_OK)
@@ -413,6 +486,10 @@ meterd_rv meterd_measure_finalize(void)
 	meterd_db_close(fivemin_db_h);
 	meterd_db_close(hourly_db_h);
 	meterd_db_close(cumul_db_h);
+
+	free(gas_id);
+	free(telegram_file);
+	free(telegram_tmp);
 
 	return MRV_OK;
 }
