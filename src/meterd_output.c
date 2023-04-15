@@ -593,6 +593,8 @@ int main(int argc, char* argv[])
 	/* Generate the requested output */
 	meterd_output(sel_counters, dbname, outfile, format_gnuplot ? FORMAT_GNUPLOT : FORMAT_CSV, additive, interval, range_file, give_y_range, y_offset, give_x_range, skip_time);
 
+	INFO_MSG("Finished processing data output request");
+
 	/* Uninitialise logging */
 	if (meterd_uninit_log() != MRV_OK)
 	{
@@ -609,8 +611,6 @@ int main(int argc, char* argv[])
 		free(sel_ctr_it->id);
 		free(sel_ctr_it);
 	}
-
-	INFO_MSG("Finished processing data output request");
 
 	return MRV_OK;
 }
