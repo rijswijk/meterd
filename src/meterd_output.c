@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Roland van Rijswijk-Deij
+ * Copyright (c) 2014-2023 Roland van Rijswijk-Deij
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,7 +47,7 @@ void version(void)
 {
 	printf("Smart Meter Monitoring Daemon (meterd) version %s\n", VERSION);
 	printf("Data series output tool\n");
-	printf("Copyright (c) 2014 Roland van Rijswijk-Deij\n\n");
+	printf("Copyright (c) 2014-2023 Roland van Rijswijk-Deij\n\n");
 	printf("Use, modification and redistribution of this software is subject to the terms\n");
 	printf("of the license agreement. This software is licensed under a 2-clause BSD-style\n");
 	printf("license a copy of which is included as the file LICENSE in the distribution.\n");
@@ -60,7 +60,7 @@ void usage(void)
 	printf("Usage:\n");
 	printf("\tmeterd-output [-c <config>] [-q] [-a] [-p] [-C] [-s <id>] [-S <id>]\n");
 	printf("\t              -d <database> [-o <file>] -i <interval> [-y <offset]\n");
-	printf("\t              [-x] [-r <file>]\n");
+	printf("\t              [-x] [-r <file>] [-t <time offset>]\n");
 	printf("\tmeterd-output -h\n");
 	printf("\tmeterd-output -v\n");
 	printf("\n");
@@ -86,13 +86,14 @@ void usage(void)
 	printf("\t              (requires -r)\n");
 	printf("\t-r <file>     File to write GNUPlot range statements to\n");
 	printf("\t-j <seconds>  Skip <seconds> between each query results\n");
+	printf("\t-t <seconds>  Offset timestamps by <seconds>\n");
 	printf("\n");
 	printf("\t-h            Print this help message\n");
 	printf("\n");
 	printf("\t-v            Print the version number\n");
 }
 
-void meterd_output(sel_counter* sel_counters, const char* dbname, const char* outfile, const int format, const int additive, const int interval, const char* range_file, const int give_y_range, const long double y_offset, const int give_x_range, int skip_time)
+void meterd_output(sel_counter* sel_counters, const char* dbname, const char* outfile, const int format, const int additive, const int interval, const char* range_file, const int give_y_range, const long double y_offset, const int give_x_range, const int skip_time, const int timeofs)
 {
 	db_res_ctr**	results		= NULL;
 	db_res_ctr**	result_it	= NULL;
@@ -239,15 +240,17 @@ void meterd_output(sel_counter* sel_counters, const char* dbname, const char* ou
 					 * because of the way data is written to the database,
 					 * timestamps are the same in all tables per row
 					 */
-					fprintf(out, "%d", result_it[i]->timestamp);
+					int ts = result_it[i]->timestamp + timeofs;
 
-					if (result_it[i]->timestamp < min_x)
+					fprintf(out, "%d", ts);
+
+					if (ts < min_x)
 					{
-						min_x = result_it[i]->timestamp;
+						min_x = ts;
 					}
-					else if (result_it[i]->timestamp > max_x)
+					else if (ts > max_x)
 					{
-						max_x = result_it[i]->timestamp;
+						max_x = ts;
 					}
 				}
 
@@ -331,15 +334,17 @@ void meterd_output(sel_counter* sel_counters, const char* dbname, const char* ou
 					 * because of the way data is written to the database,
 					 * timestamps are the same in all tables per row
 					 */
-					fprintf(out, "%10d", result_it[i]->timestamp);
+					int ts = result_it[i]->timestamp + timeofs;
 
-					if (result_it[i]->timestamp < min_x)
+					fprintf(out, "%10d", ts);
+
+					if (ts < min_x)
 					{
-						min_x = result_it[i]->timestamp;
+						min_x = ts;
 					}
-					else if (result_it[i]->timestamp > max_x)
+					else if (ts > max_x)
 					{
-						max_x = result_it[i]->timestamp;
+						max_x = ts;
 					}
 				}
 
@@ -451,13 +456,14 @@ int main(int argc, char* argv[])
 	char*		outfile		= NULL;
 	int		interval	= 0;
 	int		give_y_range	= 0;
+	int		timeofs		= 0;
 	long double	y_offset	= 0.0f;
 	int		give_x_range	= 0;
 	char*		range_file	= NULL;
 	int		skip_time	= 0;
 	int 		c 		= 0;
 	
-	while ((c = getopt(argc, argv, "c:qapCs:S:d:o:i:r:xy:j:hv")) != -1)
+	while ((c = getopt(argc, argv, "c:qapCs:S:d:o:i:r:xy:j:t:hv")) != -1)
 	{
 		switch(c)
 		{
@@ -509,6 +515,9 @@ int main(int argc, char* argv[])
 			break;
 		case 'j':
 			skip_time = atoi(optarg);
+			break;
+		case 't':
+			timeofs = atoi(optarg);
 			break;
 		case 'h':
 			usage();
@@ -591,7 +600,7 @@ int main(int argc, char* argv[])
 	INFO_MSG("Processing data output request");
 
 	/* Generate the requested output */
-	meterd_output(sel_counters, dbname, outfile, format_gnuplot ? FORMAT_GNUPLOT : FORMAT_CSV, additive, interval, range_file, give_y_range, y_offset, give_x_range, skip_time);
+	meterd_output(sel_counters, dbname, outfile, format_gnuplot ? FORMAT_GNUPLOT : FORMAT_CSV, additive, interval, range_file, give_y_range, y_offset, give_x_range, skip_time, timeofs);
 
 	INFO_MSG("Finished processing data output request");
 
